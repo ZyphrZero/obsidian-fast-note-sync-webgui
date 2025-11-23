@@ -110,6 +110,16 @@ const translations = {
     menuNotes: "Note Management",
     menuSync: "Remote Sync",
     navigation: "Navigation",
+    notes: "Notes",
+    newNote: "New Note",
+    noNotes: "No notes found",
+    noteTitlePlaceholder: "Note Title (e.g., note.md)",
+    noteContentPlaceholder: "Enter note content...",
+
+    saving: "Saving...",
+    view: "View",
+    edit: "Edit",
+    viewNotes: "View Notes",
   },
   zh: {
     title: "用户登录",
@@ -190,6 +200,16 @@ const translations = {
     menuNotes: "笔记管理",
     menuSync: "远端同步",
     navigation: "功能导航",
+    notes: "笔记列表",
+    newNote: "新建笔记",
+    noNotes: "暂无笔记",
+    noteTitlePlaceholder: "笔记标题 (例如: note.md)",
+    noteContentPlaceholder: "请输入笔记内容...",
+    noteContentPlaceholder: "请输入笔记内容...",
+    saving: "保存中...",
+    view: "查看",
+    edit: "编辑",
+    viewNotes: "查看笔记",
   },
 }
 

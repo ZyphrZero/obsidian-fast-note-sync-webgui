@@ -1,6 +1,7 @@
 import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
 import { ChangePassword } from "@/components/user/change-password";
 import { RegisterForm } from "@/components/user/register-form";
+import { NoteManager } from "@/components/note/note-manager";
 import { VaultList } from "@/components/vault/vault-list";
 import { LogOut, Menu, X, Clipboard } from "lucide-react";
 import { LoginForm } from "@/components/user/login-form";
@@ -19,6 +20,7 @@ function App() {
 
   const [isRegistering, setIsRegistering] = useState(false)
   const [activeMenu, setActiveMenu] = useState("vaults")
+  const [activeVault, setActiveVault] = useState("defaultVault")
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
@@ -182,8 +184,13 @@ function App() {
                   <h2 className="text-xl font-bold mb-4">{t("changePassword")}</h2>
                   <ChangePassword close={() => setShowChangePassword(false)} />
                 </div>
+              ) : activeMenu === "notes" ? (
+                <NoteManager vault={activeVault} onVaultChange={setActiveVault} />
               ) : (
-                <VaultList />
+                <VaultList onNavigateToNotes={(vaultName) => {
+                  setActiveVault(vaultName);
+                  setActiveMenu("notes");
+                }} />
               )
             ) : isRegistering ? (
               <RegisterForm onSuccess={handleRegisterSuccess} onBackToLogin={() => setIsRegistering(false)} />
