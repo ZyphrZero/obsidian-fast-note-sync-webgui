@@ -31,7 +31,7 @@ export function useNoteHandle() {
             }
             const res: NoteResponse<{ list: Note[], pager: { page: number, pageSize: number, totalRows: number } }> = await response.json()
             if (res.code > 0 && res.code <= 200) {
-                callback(res.data)
+                callback(res.data || { list: [], pager: { page: 1, pageSize: pageSize, totalRows: 0 } })
             } else {
                 openConfirmDialog(res.message, "error")
             }

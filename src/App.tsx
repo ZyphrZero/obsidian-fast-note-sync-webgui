@@ -6,9 +6,10 @@ import { VaultList } from "@/components/vault/vault-list";
 import { LogOut, Menu, X, Clipboard } from "lucide-react";
 import { LoginForm } from "@/components/user/login-form";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import env from "@/env.ts";
 
+import { handleVault } from "./components/api-handle/vault-handle";
 import { useVersion } from "./components/api-handle/use-version";
 import { useAuth } from "./components/context/auth-context";
 
@@ -17,6 +18,7 @@ function App() {
   const { t } = useTranslation()
   const { isLoggedIn, login, logout } = useAuth()
   const { versionInfo } = useVersion()
+  const { handleVaultList } = handleVault()
 
   const [isRegistering, setIsRegistering] = useState(false)
   const [activeMenu, setActiveMenu] = useState("vaults")
@@ -24,6 +26,23 @@ function App() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+
+  // 当切换到笔记页面时,从 API 获取仓库列表并验证当前仓库是否有效
+  useEffect(() => {
+    if (activeMenu === "notes" && isLoggedIn) {
+      handleVaultList((vaults) => {
+        if (vaults.length > 0) {
+          // 检查当前 activeVault 是否存在于仓库列表中
+          const vaultExists = vaults.some(v => v.vault === activeVault)
+
+          // 如果不存在或为默认值,则设置为第一个仓库
+          if (!vaultExists || activeVault === "defaultVault") {
+            setActiveVault(vaults[0].vault)
+          }
+        }
+      })
+    }
+  }, [activeMenu, isLoggedIn, handleVaultList])
 
   const handleLoginSuccess = () => {
     login()
@@ -181,7 +200,7 @@ function App() {
           )}
 
           {/* Main Content */}
-          <div className={`flex-1 py-6 sm:py-12 px-2 sm:px-4 md:px-6 lg:px-8 ${!isLoggedIn ? "w-full" : ""}`}>
+          <div className={`flex-1 py-6 sm:py-8 px-2 sm:px-4 md:px-6 lg:px-8 ${!isLoggedIn ? "w-full" : ""}`}>
             {isLoggedIn ? (
               showChangePassword ? (
                 <div className="max-w-md mx-auto bg-white p-4 sm:p-6 rounded-lg shadow-md">
@@ -189,7 +208,11 @@ function App() {
                   <ChangePassword close={() => setShowChangePassword(false)} />
                 </div>
               ) : activeMenu === "notes" ? (
-                <NoteManager vault={activeVault} onVaultChange={setActiveVault} />
+                <NoteManager
+                  vault={activeVault}
+                  onVaultChange={setActiveVault}
+                  onNavigateToVaults={() => setActiveMenu("vaults")}
+                />
               ) : (
                 <VaultList onNavigateToNotes={(vaultName) => {
                   setActiveVault(vaultName);

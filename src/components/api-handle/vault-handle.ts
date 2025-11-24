@@ -24,7 +24,7 @@ export function handleVault() {
     }
     const res = await response.json()
     if (res.code < 100 && res.code > 0) {
-      callback(res.data)
+      callback(res.data || [])
     } else {
       return { success: false, error: res.message + ": " + res.details }
     }

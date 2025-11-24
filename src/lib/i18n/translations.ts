@@ -131,6 +131,9 @@ const translations = {
     rowsPerPage: "Rows per page",
     perPage: "/ page",
     underConstruction: "Feature under development...",
+    noVaultsForNotes: "No vaults available",
+    createVaultFirst: "Please create a vault first to manage notes",
+    goToVaultManagement: "Go to Vault Management",
   },
   zh: {
     title: "用户登录",
@@ -232,6 +235,9 @@ const translations = {
     rowsPerPage: "每页显示",
     perPage: "每页",
     underConstruction: "功能正在开发中...",
+    noVaultsForNotes: "还没有任何笔记仓库",
+    createVaultFirst: "请先创建一个笔记仓库,然后再管理笔记",
+    goToVaultManagement: "前往仓库管理",
   },
 }
 
