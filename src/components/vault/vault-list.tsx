@@ -126,10 +126,10 @@ export function VaultList({ onNavigateToNotes }: VaultListProps) {
                         >
                           {vault.vault}
                         </span>
-                        <div className="flex items-center space-x-3 text-xs text-gray-400">
-                          <span className="font-mono">ID: {vault.id}</span>
-                          <span>•</span>
-                          <span>{vault.noteCount} {t("notes") || "Notes"}</span>
+                        <div className="flex items-center sm:space-x-3 text-xs text-gray-400">
+                          <span className="font-mono hidden sm:inline">ID: {vault.id}</span>
+                          <span className="hidden sm:inline">•</span>
+                          <span>{vault.noteCount} {t("note") || "Notes"}</span>
                           <span>•</span>
                           <span>{formatBytes(vault.size)}</span>
                           <span className="hidden sm:inline-flex items-center ml-2">
