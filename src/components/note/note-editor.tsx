@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
-import { ArrowLeft, Save, Pencil } from "lucide-react";
+import { ArrowLeft, Save, Pencil, Folder } from "lucide-react";
 import { Note, NoteDetail } from "@/lib/types/note";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
@@ -92,6 +92,7 @@ export function NoteEditor({ vault, note, mode, onBack, onSaveSuccess, onEdit }:
                         <div className="flex items-center text-lg overflow-hidden whitespace-nowrap text-ellipsis">
                             {folder && (
                                 <>
+                                    <Folder className="h-4 w-4 mr-1 text-muted-foreground shrink-0" />
                                     <span className="text-muted-foreground">{folder}</span>
                                     <span className="text-muted-foreground mx-1">/</span>
                                 </>
