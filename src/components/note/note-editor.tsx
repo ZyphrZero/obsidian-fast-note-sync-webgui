@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
 import { ArrowLeft, Save, Pencil, Folder } from "lucide-react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Note, NoteDetail } from "@/lib/types/note";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
-import MDEditor from "@uiw/react-md-editor";
-import { useState, useEffect } from "react";
+
+
+// 懒加载 MDEditor 组件，将 1MB+ 的依赖从主包中分离
+const MDEditor = lazy(() => import("@uiw/react-md-editor"));
 
 
 interface NoteEditorProps {
@@ -137,14 +140,20 @@ export function NoteEditor({ vault, note, mode, onBack, onSaveSuccess, onEdit }:
                     </div>
                 ) : (
                     <div className="flex-1 min-h-[500px] overflow-hidden" data-color-mode="light">
-                        <MDEditor
-                            value={content}
-                            onChange={(val) => setContent(val || "")}
-                            height="100%"
-                            preview={mode === "view" ? "preview" : "live"}
-                            hideToolbar={mode === "view"}
-                            visibleDragbar={mode === "edit"}
-                        />
+                        <Suspense fallback={
+                            <div className="flex items-center justify-center h-full">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            </div>
+                        }>
+                            <MDEditor
+                                value={content}
+                                onChange={(val) => setContent(val || "")}
+                                height="100%"
+                                preview={mode === "view" ? "preview" : "live"}
+                                hideToolbar={mode === "view"}
+                                visibleDragbar={mode === "edit"}
+                            />
+                        </Suspense>
                     </div>
                 )}
             </CardContent>
