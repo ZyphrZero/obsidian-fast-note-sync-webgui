@@ -2,10 +2,10 @@ import { FileText, Trash2, RefreshCw, Plus, Eye, Pencil, Calendar, Clock, Chevro
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { VaultType } from "@/lib/types/vault";
-import { useState, useEffect } from "react";
 import { Note } from "@/lib/types/note";
 import { format } from "date-fns";
 
@@ -106,15 +106,15 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                                 {notes.map((note, index) => (
                                     <div
                                         key={note.id}
-                                        className={`flex items-center justify-between px-6 py-3 cursor-pointer transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                                        className={`flex items-start justify-between px-6 py-3 cursor-pointer transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50"
                                             } hover:bg-blue-50`}
                                         onClick={() => onSelectNote(note, "view")}
                                     >
-                                        <div className="flex items-center space-x-4 overflow-hidden">
-                                            <FileText className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                                        <div className="flex items-start space-x-4 overflow-hidden">
+                                            <FileText className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
                                             <div className="flex flex-col overflow-hidden">
-                                                <span className="font-medium truncate text-base max-w-[280px] sm:max-w-none">{note.path.replace(/\.md$/, "")}</span>
-                                                <div className="flex items-center sm:space-x-3 text-xs text-gray-400">
+                                                <span className="font-medium text-base break-all whitespace-normal">{note.path.replace(/\.md$/, "")}</span>
+                                                <div className="flex items-center sm:space-x-3 text-xs text-gray-400 mt-1">
                                                     <span className="hidden sm:flex items-center" title={t("createdAt")}>
                                                         <Calendar className="mr-1 h-3 w-3" />
                                                         {format(new Date(note.ctime), "yyyy-MM-dd HH:mm")}
@@ -126,7 +126,7 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-1">
+                                        <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
