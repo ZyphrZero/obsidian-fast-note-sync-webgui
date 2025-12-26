@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { Note } from "@/lib/types/note";
 import { Database } from "lucide-react";
 
+import { NoteHistoryModal } from "./note-history-modal";
 import { NoteEditor } from "./note-editor";
 import { NoteList } from "./note-list";
 
@@ -23,10 +24,19 @@ export function NoteManager({ vault = "defaultVault", onVaultChange, onNavigateT
     const [mode, setMode] = useState<"view" | "edit">("view");
     const [selectedNote, setSelectedNote] = useState<Note | undefined>(undefined);
     const [vaults, setVaults] = useState<VaultType[]>([]);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [selectedNoteForHistory, setSelectedNoteForHistory] = useState<Note | null>(null);
 
     // Lifted state for pagination
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(() => {
+        const saved = localStorage.getItem("notePageSize");
+        return saved ? parseInt(saved, 10) : 10;
+    });
+
+    useEffect(() => {
+        localStorage.setItem("notePageSize", pageSize.toString());
+    }, [pageSize]);
 
     const { handleVaultList } = handleVault();
 
@@ -67,6 +77,11 @@ export function NoteManager({ vault = "defaultVault", onVaultChange, onNavigateT
         setMode("edit");
     };
 
+    const handleViewHistory = (note: Note) => {
+        setSelectedNoteForHistory(note);
+        setHistoryModalOpen(true);
+    };
+
     // 检查是否有仓库
     if (vaults.length === 0) {
         return (
@@ -96,8 +111,9 @@ export function NoteManager({ vault = "defaultVault", onVaultChange, onNavigateT
         );
     }
 
+    let content;
     if (view === "editor") {
-        return (
+        content = (
             <NoteEditor
                 vault={vault}
                 note={selectedNote}
@@ -105,21 +121,41 @@ export function NoteManager({ vault = "defaultVault", onVaultChange, onNavigateT
                 onBack={handleBack}
                 onSaveSuccess={handleSaveSuccess}
                 onEdit={handleEdit}
+                onViewHistory={() => selectedNote && handleViewHistory(selectedNote)}
+            />
+        );
+    } else {
+        content = (
+            <NoteList
+                vault={vault}
+                vaults={vaults}
+                onVaultChange={onVaultChange}
+                onSelectNote={handleSelectNote}
+                onCreateNote={handleCreateNote}
+                page={page}
+                setPage={setPage}
+                pageSize={pageSize}
+                setPageSize={setPageSize}
+                onViewHistory={handleViewHistory}
             />
         );
     }
 
     return (
-        <NoteList
-            vault={vault}
-            vaults={vaults}
-            onVaultChange={onVaultChange}
-            onSelectNote={handleSelectNote}
-            onCreateNote={handleCreateNote}
-            page={page}
-            setPage={setPage}
-            pageSize={pageSize}
-            setPageSize={setPageSize}
-        />
+        <>
+            {content}
+            {selectedNoteForHistory && (
+                <NoteHistoryModal
+                    isOpen={historyModalOpen}
+                    onClose={() => {
+                        setHistoryModalOpen(false);
+                        setSelectedNoteForHistory(null);
+                    }}
+                    vault={vault}
+                    notePath={selectedNoteForHistory.path}
+                    pathHash={selectedNoteForHistory.pathHash}
+                />
+            )}
+        </>
     );
 }

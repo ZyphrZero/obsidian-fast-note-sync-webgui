@@ -1,6 +1,6 @@
+import { ArrowLeft, Save, Pencil, Folder, History } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
-import { ArrowLeft, Save, Pencil, Folder } from "lucide-react";
 import { Note, NoteDetail } from "@/lib/types/note";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
@@ -16,9 +16,10 @@ interface NoteEditorProps {
     onBack: () => void;
     onSaveSuccess: () => void;
     onEdit?: () => void;
+    onViewHistory?: () => void;
 }
 
-export function NoteEditor({ vault, note, mode, onBack, onSaveSuccess, onEdit }: NoteEditorProps) {
+export function NoteEditor({ vault, note, mode, onBack, onSaveSuccess, onEdit, onViewHistory }: NoteEditorProps) {
     const { t } = useTranslation();
     const { handleGetNote, handleSaveNote } = useNoteHandle();
 
@@ -124,10 +125,18 @@ export function NoteEditor({ vault, note, mode, onBack, onSaveSuccess, onEdit }:
                         {saving ? t("saving") : t("save")}
                     </Button>
                 ) : (
-                    <Button onClick={onEdit} variant="outline" className="shrink-0">
-                        <Pencil className="mr-2 h-4 w-4" />
-                        {t("edit")}
-                    </Button>
+                    <div className="flex gap-2">
+                        {note && onViewHistory && (
+                            <Button onClick={onViewHistory} variant="outline" className="shrink-0">
+                                <History className="mr-2 h-4 w-4" />
+                                {t("history") || "历史"}
+                            </Button>
+                        )}
+                        <Button onClick={onEdit} variant="outline" className="shrink-0">
+                            <Pencil className="mr-2 h-4 w-4" />
+                            {t("edit")}
+                        </Button>
+                    </div>
                 )}
             </CardHeader>
             <CardContent className="flex-1 p-4 flex flex-col">

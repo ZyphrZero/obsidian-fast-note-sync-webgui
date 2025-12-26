@@ -1,0 +1,293 @@
+import { ChevronLeft, ChevronRight, History, FileText, Apple, Laptop, Chrome, Smartphone } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNoteHandle } from "@/components/api-handle/note-handle";
+import { NoteHistory, NoteHistoryDetail } from "@/lib/types/note";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
+import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+
+
+// 专业品牌图标组件
+const WindowsIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M0 3.449L9.75 2.1V11.7H0V3.449zm0 17.1L9.75 21.9V12.3H0v8.249zM10.5 2V11.7H24V0L10.5 2zm0 19.9l13.5 2V12.3H10.5v9.6z" />
+    </svg>
+);
+
+const AndroidIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path d="M17.523 15.3414C17.0709 15.3414 16.7042 14.9747 16.7042 14.5226C16.7042 14.0705 17.0709 13.7038 17.523 13.7038C17.9751 13.7038 18.3418 14.0705 18.3418 14.5226C18.3418 14.9747 17.9751 15.3414 17.523 15.3414ZM6.47702 15.3414C6.02492 15.3414 5.65823 14.9747 5.65823 14.5226C5.65823 14.0705 6.02492 13.7038 6.47702 13.7038C6.92911 13.7038 7.29581 14.0705 7.29581 14.5226C7.29581 14.9747 6.92911 15.3414 6.47702 15.3414ZM17.8465 10.925L19.4975 8.06544C19.648 7.80481 19.5588 7.47196 19.2982 7.32145C19.0375 7.17094 18.7047 7.26017 18.5542 7.52081L16.8529 10.4677C15.4269 9.81534 13.8052 9.42997 12 9.42997C10.1948 9.42997 8.57307 9.81534 7.14713 10.4677L5.44577 7.52081C5.29527 7.26017 4.96245 7.17094 4.70181 7.32145C4.44116 7.47196 4.35194 7.80481 4.50244 8.06544L6.15347 10.925C3.06456 12.6015 1 15.7725 1 19.4673H23C23 15.7725 20.9354 12.6015 17.8465 10.925Z" />
+    </svg>
+);
+
+
+interface NoteHistoryModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    vault: string;
+    notePath: string;
+    pathHash?: string;
+}
+
+export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }: NoteHistoryModalProps) {
+    const { t } = useTranslation();
+    const { handleNoteHistoryList, handleNoteHistoryDetail } = useNoteHandle();
+    const [historyList, setHistoryList] = useState<NoteHistory[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalRows, setTotalRows] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [selectedHistory, setSelectedHistory] = useState<NoteHistoryDetail | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [showDiffOnly, setShowDiffOnly] = useState(false);
+    const pageSize = 5;
+
+    const fetchHistoryList = (currentPage: number) => {
+        setLoading(true);
+        handleNoteHistoryList(vault, notePath, pathHash, currentPage, pageSize, (data) => {
+            setHistoryList(data.list);
+            setTotalRows(data.pager.totalRows);
+            setLoading(false);
+        });
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchHistoryList(page);
+            setSelectedHistory(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, page, vault, notePath]);
+
+    const handleViewDetail = (id: number) => {
+        setDetailLoading(true);
+        handleNoteHistoryDetail(vault, id, (data) => {
+            setSelectedHistory(data);
+            setDetailLoading(false);
+        });
+    };
+
+    const renderDiffs = (diffs: { Type: number, Text: string }[]) => {
+        if (!diffs || !Array.isArray(diffs)) return null;
+
+        // 1. 将 diff 段拆分为按行排列的结构，同时计算行号
+        let newLineCounter = 0;
+        const processedLines: { lineNum: string; segments: { Type: number, Text: string }[] }[] = [];
+        let currentLineSegments: { Type: number, Text: string }[] = [];
+
+        const commitLine = () => {
+            // 判断当前行是否包含有效内容（非纯删除行）
+            const isPureDelete = currentLineSegments.every(s => s.Type === -1);
+            let displayNum = "-";
+            if (!isPureDelete) {
+                newLineCounter++;
+                displayNum = newLineCounter.toString();
+            }
+            processedLines.push({ lineNum: displayNum, segments: [...currentLineSegments] });
+            currentLineSegments = [];
+        };
+
+        diffs.forEach(d => {
+            const parts = d.Text.split("\n");
+            parts.forEach((part, i) => {
+                currentLineSegments.push({ Type: d.Type, Text: part });
+                if (i < parts.length - 1) {
+                    commitLine();
+                }
+            });
+        });
+        if (currentLineSegments.length > 0) {
+            commitLine();
+        }
+
+        // 2. 过滤逻辑：如果开启了“只看差异”，仅保留包含修改内容 (Type != 0) 的行
+        const displayLines = showDiffOnly
+            ? processedLines.filter(line => line.segments.some(segment => segment.Type !== 0))
+            : processedLines;
+
+        // 3. 构建 HTML
+        const html = displayLines.map((line) => {
+            const lineContent = line.segments.map(d => {
+                const text = d.Text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+
+                if (d.Type === 1) { // DIFF_INSERT
+                    return `<ins class="bg-green-100 text-green-900 no-underline px-0.5 rounded-sm border-b border-green-300 font-bold">${text}</ins>`;
+                } else if (d.Type === -1) { // DIFF_DELETE
+                    return `<del class="bg-red-100 text-red-900 line-through decoration-red-400 px-0.5 rounded-sm opacity-70">${text}</del>`;
+                }
+                return `<span>${text}</span>`;
+            }).join("");
+
+            return `
+                <div class="diff-line-row flex items-start group">
+                    <div class="line-number w-10 shrink-0 text-right pr-3 select-none text-slate-300 font-mono text-[11px] pt-[3px] border-r border-slate-100 mr-3 group-hover:text-slate-400 transition-colors">
+                        ${line.lineNum}
+                    </div>
+                    <div class="line-content flex-1 py-0.5">${lineContent}</div>
+                </div>
+            `;
+        }).join("");
+
+        return (
+            <div
+                className="diff-content overflow-auto max-h-[500px] p-6 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[13px] leading-relaxed shadow-inner text-slate-700"
+                dangerouslySetInnerHTML={{ __html: html || `<div class="text-center py-4 opacity-50 italic">${t("noHistory")}</div>` }}
+            />
+        );
+    };
+
+    const renderClientIcon = (clientName: string = "") => {
+        const name = clientName.toLowerCase();
+
+        if (name.includes("web")) {
+            return <Chrome className="h-4 w-4 text-[#4285F4] shrink-0" />;
+        } else if (name.includes("mac") || name.includes("apple")) {
+            return <Apple className="h-4 w-4 text-[#555555] shrink-0" />;
+        } else if (name.includes("win")) {
+            return <WindowsIcon className="h-3.5 w-3.5 text-[#0078D4] shrink-0 translate-y-[1px]" />;
+        } else if (name.includes("ios") || name.includes("iphone") || name.includes("ipad")) {
+            return <Smartphone className="h-4 w-4 text-[#555555] shrink-0" />;
+        } else if (name.includes("android")) {
+            return <AndroidIcon className="h-4 w-4 text-[#3DDC84] shrink-0" />;
+        }
+
+        return <Laptop className="h-4 w-4 text-slate-400 shrink-0" />;
+    };
+
+    const totalPages = Math.ceil(totalRows / pageSize);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 font-normal overflow-hidden">
+                        <History className="h-4 w-4 shrink-0 text-muted-foreground opacity-70" />
+                        <span className="shrink-0 text-muted-foreground">{t("noteHistory")}:</span>
+                        <span className="truncate text-foreground font-medium">{notePath.replace(/\.md$/, "")}</span>
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="flex-1 overflow-auto py-4">
+                    <div className="space-y-6">
+                        {/* 列表部分 */}
+                        <div className="border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[80px]">{t("historyVersion")}</TableHead>
+                                        <TableHead>{t("clientSource")}</TableHead>
+                                        <TableHead>{t("createdAt")}</TableHead>
+                                        <TableHead className="text-right">{t("viewDetail")}</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t("loadingHistory")}</TableCell>
+                                        </TableRow>
+                                    ) : historyList.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t("noHistory")}</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        historyList.map((item) => (
+                                            <TableRow key={item.id} className={`hover:bg-muted/50 transition-colors ${selectedHistory?.id === item.id ? "bg-blue-50" : ""}`}>
+                                                <TableCell className="font-mono">v{item.version}</TableCell>
+                                                <TableCell className="flex items-center gap-2 text-muted-foreground">
+                                                    <span>{item.clientName || "Unknown"}</span>
+                                                    {renderClientIcon(item.clientName)}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss")}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="sm" onClick={() => handleViewDetail(item.id)}>
+                                                        {t("view")}
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {/* 分页 */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-between px-2">
+                                <p className="text-sm text-muted-foreground">
+                                    {t("historyCount", { count: totalRows })}
+                                </p>
+                                <div className="flex items-center space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        disabled={page === 1 || loading}
+                                    >
+                                        <ChevronLeft className="h-4 w-4 mr-1" />
+                                        {t("previous")}
+                                    </Button>
+                                    <span className="text-sm font-medium">{t("page")} {page} / {totalPages} {t("next").includes("下一页") ? "页" : ""}</span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages || loading}
+                                    >
+                                        {t("next")}
+                                        <ChevronRight className="h-4 w-4 ml-1" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 详情部分 */}
+                        {selectedHistory && (
+                            <div className="mt-6 border-t pt-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold flex items-baseline gap-2">
+                                        <FileText className="h-4 w-4 self-center" />
+                                        <span>{t("diffDetails", { version: selectedHistory.version })}</span>
+                                        <div className="flex items-baseline gap-2 ml-2 text-[10px] font-normal uppercase tracking-wider">
+                                            <span className="px-1.5 py-0 rounded bg-green-100 text-muted-foreground/60 border border-green-200/50 leading-tight">
+                                                {t("diffLegendAdd")}
+                                            </span>
+                                            <span className="px-1.5 py-0 rounded bg-red-100 text-muted-foreground/60 border border-red-200/50 leading-tight">
+                                                {t("diffLegendDel")}
+                                            </span>
+                                        </div>
+                                    </h3>
+                                    <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                        <Checkbox
+                                            id="showDiffOnly"
+                                            checked={showDiffOnly}
+                                            onCheckedChange={(checked) => setShowDiffOnly(!!checked)}
+                                        />
+                                        <Label
+                                            htmlFor="showDiffOnly"
+                                            className="text-sm font-medium leading-none cursor-pointer text-slate-700"
+                                        >
+                                            {t("showDiffOnly")}
+                                        </Label>
+                                    </div>
+                                </div>
+                                {detailLoading ? (
+                                    <div className="py-8 text-center text-muted-foreground">{t("loadingHistory")}</div>
+                                ) : (
+                                    renderDiffs(selectedHistory.diffs)
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}

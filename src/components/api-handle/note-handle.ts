@@ -1,5 +1,5 @@
+import { Note, NoteDetail, NoteResponse, NoteHistoryDetail, NoteHistoryListResponse } from "@/lib/types/note";
 import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
-import { Note, NoteDetail, NoteResponse } from "@/lib/types/note";
 import { addCacheBuster } from "@/lib/utils/cache-buster";
 import { getBrowserLang } from "@/lib/i18n/utils";
 import env from "@/env.ts";
@@ -16,13 +16,18 @@ export function useNoteHandle() {
         Lang: getBrowserLang(),
     })
 
-    const handleNoteList = async (vault: string, page: number, pageSize: number, callback: (data: { list: Note[], pager: { page: number, pageSize: number, totalRows: number } }) => void) => {
+    const handleNoteList = async (vault: string, page: number, pageSize: number, keyword: string = "", callback: (data: { list: Note[], pager: { page: number, pageSize: number, totalRows: number } }) => void) => {
         try {
             // Ensure page and pageSize are integers strings
             const pageStr = Math.floor(page).toString();
             const pageSizeStr = Math.floor(pageSize).toString();
 
-            const response = await fetch(addCacheBuster(`${env.API_URL}/api/notes?vault=${vault}&page=${pageStr}&pageSize=${pageSizeStr}`), {
+            let url = `${env.API_URL}/api/notes?vault=${vault}&page=${pageStr}&pageSize=${pageSizeStr}`;
+            if (keyword) {
+                url += `&keyword=${encodeURIComponent(keyword)}`;
+            }
+
+            const response = await fetch(addCacheBuster(url), {
                 method: "GET",
                 headers: getHeaders(),
             })
@@ -121,10 +126,58 @@ export function useNoteHandle() {
         }
     }
 
+    const handleNoteHistoryList = async (vault: string, notePath: string, pathHash: string | undefined, page: number, pageSize: number, callback: (data: NoteHistoryListResponse) => void) => {
+        try {
+            const pageStr = Math.floor(page).toString();
+            const pageSizeStr = Math.floor(pageSize).toString();
+            let url = `${env.API_URL}/api/note/histories?vault=${vault}&path=${encodeURIComponent(notePath)}&page=${pageStr}&pageSize=${pageSizeStr}`;
+            if (pathHash) {
+                url += `&path_hash=${pathHash}`;
+            }
+            const response = await fetch(addCacheBuster(url), {
+                method: "GET",
+                headers: getHeaders(),
+            })
+            if (!response.ok) {
+                throw new Error("Network response was not ok")
+            }
+            const res: NoteResponse<NoteHistoryListResponse> = await response.json()
+            if (res.code > 0 && res.code <= 200) {
+                callback(res.data)
+            } else {
+                openConfirmDialog(res.message, "error")
+            }
+        } catch (error: any) {
+            openConfirmDialog(error.message, "error")
+        }
+    }
+
+    const handleNoteHistoryDetail = async (vault: string, id: number, callback: (data: NoteHistoryDetail) => void) => {
+        try {
+            const response = await fetch(addCacheBuster(`${env.API_URL}/api/note/history?vault=${vault}&id=${id}`), {
+                method: "GET",
+                headers: getHeaders(),
+            })
+            if (!response.ok) {
+                throw new Error("Network response was not ok")
+            }
+            const res: NoteResponse<NoteHistoryDetail> = await response.json()
+            if (res.code > 0 && res.code <= 200) {
+                callback(res.data)
+            } else {
+                openConfirmDialog(res.message, "error")
+            }
+        } catch (error: any) {
+            openConfirmDialog(error.message, "error")
+        }
+    }
+
     return {
         handleNoteList,
         handleGetNote,
         handleSaveNote,
         handleDeleteNote,
+        handleNoteHistoryList,
+        handleNoteHistoryDetail,
     }
 }

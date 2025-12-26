@@ -1,4 +1,4 @@
-import { FileText, Trash2, RefreshCw, Plus, Eye, Pencil, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Trash2, RefreshCw, Plus, Eye, Pencil, Calendar, Clock, ChevronLeft, ChevronRight, History, Search, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { VaultType } from "@/lib/types/vault";
+import { Input } from "@/components/ui/input";
 import { Note } from "@/lib/types/note";
 import { format } from "date-fns";
 
@@ -20,18 +21,29 @@ interface NoteListProps {
     setPage: (page: number) => void;
     pageSize: number;
     setPageSize: (pageSize: number) => void;
+    onViewHistory: (note: Note) => void;
 }
 
-export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateNote, page, setPage, pageSize, setPageSize }: NoteListProps) {
+export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateNote, page, setPage, pageSize, setPageSize, onViewHistory }: NoteListProps) {
     const { t } = useTranslation();
     const { handleNoteList, handleDeleteNote } = useNoteHandle();
     const [notes, setNotes] = useState<Note[]>([]);
     const [loading, setLoading] = useState(false);
     const [totalRows, setTotalRows] = useState(0);
+    const [searchKeyword, setSearchKeyword] = useState("");
+    const [debouncedKeyword, setDebouncedKeyword] = useState("");
 
-    const fetchNotes = (currentPage: number = page, currentPageSize: number = pageSize) => {
+    // Debounce search keyword
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedKeyword(searchKeyword);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchKeyword]);
+
+    const fetchNotes = (currentPage: number = page, currentPageSize: number = pageSize, keyword: string = debouncedKeyword) => {
         setLoading(true);
-        handleNoteList(vault, currentPage, currentPageSize, (data) => {
+        handleNoteList(vault, currentPage, currentPageSize, keyword, (data) => {
             setNotes(data.list);
             setTotalRows(data.pager.totalRows);
             // setPage(data.pager.page); // Don't update page from response, trust the state
@@ -40,8 +52,14 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
     };
 
     useEffect(() => {
-        fetchNotes(page, pageSize);
-    }, [vault, page, pageSize]);
+        fetchNotes(page, pageSize, debouncedKeyword);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vault, page, pageSize, debouncedKeyword]);
+
+    // Reset page to 1 when search keyword changes
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedKeyword, setPage]);
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= Math.ceil(totalRows / pageSize)) {
@@ -86,6 +104,26 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                         </CardTitle>
                     )}
                 </div>
+                <div className="flex items-center space-x-2 flex-1 max-w-sm px-4">
+                    <div className="relative w-full">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                        <Input
+                            type="text"
+                            placeholder={t("searchPlaceholder")}
+                            className="pl-9 pr-8 h-9"
+                            value={searchKeyword}
+                            onChange={(e) => setSearchKeyword(e.target.value)}
+                        />
+                        {searchKeyword && (
+                            <button
+                                className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                                onClick={() => setSearchKeyword("")}
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+                </div>
                 <div className="flex space-x-2">
                     <Button variant="outline" size="icon" onClick={() => fetchNotes()} disabled={loading}>
                         <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -123,6 +161,12 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                                                         <Clock className="mr-1 h-3 w-3" />
                                                         {format(new Date(note.mtime), "yyyy-MM-dd HH:mm")}
                                                     </span>
+                                                    {note.version > 0 && (
+                                                        <span className="flex items-center text-gray-400" title={t("history")}>
+                                                            <History className="mr-1 h-3 w-3" />
+                                                            v{note.version}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -150,6 +194,18 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                                                 title={t("edit")}
                                             >
                                                 <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-gray-500 hover:text-purple-600 hover:bg-purple-50"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onViewHistory(note);
+                                                }}
+                                                title={t("history") || "历史记录"}
+                                            >
+                                                <History className="h-4 w-4" />
                                             </Button>
                                             <Button
                                                 variant="ghost"
