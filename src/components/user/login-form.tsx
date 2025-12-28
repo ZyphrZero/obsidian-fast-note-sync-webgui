@@ -1,3 +1,4 @@
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { createLoginSchema, type LoginFormData } from "@/lib/validations/user-schema";
 import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
 import { useAuth } from "@/components/api-handle/use-auth";
@@ -51,10 +52,109 @@ export function LoginForm({ onSuccess, onRegister }: LoginFormProps) {
     <div className="w-full max-w-4xl mx-auto p-5 space-y-4 relative">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{t("title")}</h1>
-        <Button variant="outline" onClick={() => changeLang(i18n.language === "en" ? "zh" : "en")} className="text-sm font-medium hover:bg-slate-100 transition-colors">
-          <Languages className="mr-2 h-4 w-4" />
-          {i18n.language === "en" ? "中文" : "English"}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="text-sm font-medium hover:bg-slate-100 transition-colors">
+              <Languages className="mr-2 h-4 w-4" />
+              {t("switchLanguage")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
+            <DropdownMenuItem onClick={() => changeLang("en")}>
+              🇺🇸 English
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("zh")}>
+              🇨🇳 简体中文
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("zh-TW")}>
+              🇹🇼 繁體中文
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ja")}>
+              🇯🇵 日本語
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ko")}>
+              🇰🇷 한국어
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("fr")}>
+              🇫🇷 Français
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("de")}>
+              🇩🇪 Deutsch
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("es")}>
+              🇪🇸 Español
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("it")}>
+              🇮🇹 Italiano
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("pt")}>
+              🇵🇹 Português
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("pt-BR")}>
+              🇧🇷 Português (Brasil)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ru")}>
+              🇷🇺 Русский
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("uk")}>
+              🇺🇦 Українська
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("be")}>
+              🇧🇾 Беларуская
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("nl")}>
+              🇳🇱 Nederlands
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("pl")}>
+              🇵🇱 Polski
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("da")}>
+              🇩🇰 Dansk
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("no")}>
+              🇳🇴 Norsk
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("tr")}>
+              🇹🇷 Türkçe
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("vi")}>
+              🇻🇳 Tiếng Việt
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("th")}>
+              🇹🇭 ไทย
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("hi")}>
+              🇮🇳 हिन्दी
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("id")}>
+              🇮🇩 Indonesia
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ms")}>
+              🇲🇾 Bahasa Melayu
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ro")}>
+              🇷🇴 Română
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ca")}>
+              🇦🇩 Català
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("hu")}>
+              🇭🇺 Magyar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ar")}>
+              🇸🇦 العربية
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("he")}>
+              🇮🇱 עברית
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("ne")}>
+              🇳🇵 नेपाली
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLang("sq")}>
+              🇦🇱 Shqip
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="space-y-2">
