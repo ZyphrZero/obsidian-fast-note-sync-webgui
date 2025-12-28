@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, History, FileText, Apple, Laptop, Chrome, Smartphone } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, FileText, Apple, Laptop, Chrome, Smartphone, Copy, Check } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
@@ -43,6 +43,8 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }:
     const [selectedHistory, setSelectedHistory] = useState<NoteHistoryDetail | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
     const [showDiffOnly, setShowDiffOnly] = useState(false);
+    const [showOriginal, setShowOriginal] = useState(false);
+    const [copied, setCopied] = useState(false);
     const pageSize = 5;
 
     const fetchHistoryList = (currentPage: number) => {
@@ -65,12 +67,14 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }:
         if (isOpen) {
             fetchHistoryList(page);
             setSelectedHistory(null);
+            setShowOriginal(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, page, vault, notePath]);
 
     const handleViewDetail = (id: number) => {
         setDetailLoading(true);
+        setCopied(false);
         handleNoteHistoryDetail(vault, id, (data) => {
             setSelectedHistory(data);
             setDetailLoading(false);
@@ -118,7 +122,16 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }:
             : processedLines;
 
         // 3. 构建 HTML
-        const html = displayLines.map((line) => {
+        const pathRow = `
+            <div class="diff-line-row flex items-start group h-7">
+                <div class="line-number w-10 shrink-0 text-right pr-3 select-none text-transparent font-mono text-[11px] border-r border-transparent mr-3 leading-7">
+                    -
+                </div>
+                <div class="line-content flex-1 py-0 text-slate-300 font-mono text-[11px] select-text cursor-text min-h-[28px] leading-7 h-7">${notePath}</div>
+            </div>
+        `;
+
+        const html = pathRow + displayLines.map((line) => {
             if (!line.segments) return "";
             const lineContent = line.segments.map(d => {
                 const text = String(d.Text || "")
@@ -135,18 +148,18 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }:
             }).join("");
 
             return `
-                <div class="diff-line-row flex items-start group">
-                    <div class="line-number w-10 shrink-0 text-right pr-3 select-none text-slate-300 font-mono text-[11px] pt-[3px] border-r border-slate-100 mr-3 group-hover:text-slate-400 transition-colors">
+                <div class="diff-line-row flex items-start group h-7">
+                    <div class="line-number w-10 shrink-0 text-right pr-3 select-none text-slate-300 font-mono text-[11px] border-r border-slate-100 mr-3 group-hover:text-slate-400 transition-colors leading-7">
                         ${line.lineNum}
                     </div>
-                    <div class="line-content flex-1 py-0.5">${lineContent}</div>
+                    <div class="line-content flex-1 py-0 min-h-[28px] leading-7 h-7">${lineContent || "&nbsp;"}</div>
                 </div>
             `;
         }).join("");
 
         return (
             <div
-                className="diff-content overflow-auto max-h-[500px] p-6 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[13px] leading-relaxed shadow-inner text-slate-700"
+                className="diff-content overflow-auto max-h-[500px] p-6 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[13px] leading-7 shadow-inner text-slate-700 select-text selection:bg-blue-100 selection:text-blue-900"
                 dangerouslySetInnerHTML={{ __html: html || `<div class="text-center py-4 opacity-50 italic">${t("noHistory")}</div>` }}
             />
         );
@@ -168,6 +181,45 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }:
         }
 
         return <Laptop className="h-4 w-4 text-slate-400 shrink-0" />;
+    };
+
+    const renderOriginalContent = (content: string) => {
+        if (!content) return null;
+
+        const pathRow = `
+            <div class="diff-line-row flex items-start group h-7">
+                <div class="line-number w-10 shrink-0 text-right pr-3 select-none text-transparent font-mono text-[11px] border-r border-transparent mr-3 leading-7">
+                    -
+                </div>
+                <div class="line-content flex-1 py-0 text-slate-300 font-mono text-[11px] select-text cursor-text min-h-[28px] leading-7 h-7">${notePath}</div>
+            </div>
+        `;
+
+        // Normalize line endings and trim trailing newline
+        const normalizedContent = content.replace(/\r\n/g, "\n").replace(/\n$/, "");
+        const lines = normalizedContent.split("\n");
+        const html = pathRow + lines.map((line, index) => {
+            const text = line
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            return `
+                <div class="diff-line-row flex items-start group h-7">
+                    <div class="line-number w-10 shrink-0 text-right pr-3 select-none text-slate-300 font-mono text-[11px] border-r border-slate-100 mr-3 group-hover:text-slate-400 transition-colors leading-7">
+                        ${index + 1}
+                    </div>
+                    <div class="line-content flex-1 py-0 min-h-[28px] leading-7 h-7">${text || "&nbsp;"}</div>
+                </div>
+            `;
+        }).join("");
+
+        return (
+            <div
+                className="diff-content overflow-auto max-h-[500px] p-6 bg-slate-50 rounded-xl border border-slate-200 font-mono text-[13px] leading-7 shadow-inner text-slate-700 select-text selection:bg-blue-100 selection:text-blue-900"
+                dangerouslySetInnerHTML={{ __html: html }}
+            />
+        );
     };
 
     const totalPages = Math.ceil((totalRows || 0) / pageSize);
@@ -278,22 +330,73 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash }:
                                             </span>
                                         </div>
                                     </h3>
-                                    <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-                                        <Checkbox
-                                            id="showDiffOnly"
-                                            checked={showDiffOnly}
-                                            onCheckedChange={(checked) => setShowDiffOnly(!!checked)}
-                                        />
-                                        <Label
-                                            htmlFor="showDiffOnly"
-                                            className="text-sm font-medium leading-none cursor-pointer text-slate-700"
-                                        >
-                                            {t("showDiffOnly")}
-                                        </Label>
+                                    <div className="flex items-center">
+                                        <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                            <Checkbox
+                                                id="showDiffOnly"
+                                                checked={showDiffOnly}
+                                                onCheckedChange={(checked) => {
+                                                    const val = !!checked;
+                                                    setShowDiffOnly(val);
+                                                    if (val) setShowOriginal(false);
+                                                }}
+                                            />
+                                            <Label
+                                                htmlFor="showDiffOnly"
+                                                className="text-sm font-medium leading-none cursor-pointer text-slate-700"
+                                            >
+                                                {t("showDiffOnly")}
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm ml-3">
+                                            <Checkbox
+                                                id="showOriginalContent"
+                                                checked={showOriginal}
+                                                onCheckedChange={(checked) => {
+                                                    const val = !!checked;
+                                                    setShowOriginal(val);
+                                                    if (val) setShowDiffOnly(false);
+                                                }}
+                                            />
+                                            <Label
+                                                htmlFor="showOriginalContent"
+                                                className="text-sm font-medium leading-none cursor-pointer text-slate-700"
+                                            >
+                                                {t("showOriginalContent")}
+                                            </Label>
+                                        </div>
                                     </div>
                                 </div>
                                 {detailLoading ? (
                                     <div className="py-8 text-center text-muted-foreground">{t("loadingHistory")}</div>
+                                ) : showOriginal ? (
+                                    <div className="relative group">
+                                        {renderOriginalContent(selectedHistory.content)}
+                                        <Button
+                                            variant="secondary"
+                                            size={copied ? "sm" : "icon"}
+                                            className={`absolute top-2 right-2 h-8 ${copied ? "w-auto px-3" : "w-8"} transition-all shadow-sm bg-white/80 hover:bg-white backdrop-blur-sm border border-slate-200 z-10 flex items-center gap-1`}
+                                            onClick={() => {
+                                                if (selectedHistory.content) {
+                                                    navigator.clipboard.writeText(selectedHistory.content);
+                                                    setCopied(true);
+                                                    setTimeout(() => setCopied(false), 2000);
+                                                }
+                                            }}
+                                            title={t("copyNote")}
+                                        >
+                                            {copied ? (
+                                                <div className="flex items-center gap-1 text-green-600 animate-in fade-in zoom-in duration-200">
+                                                    <Check className="h-3.5 w-3.5" />
+                                                    <span className="text-xs font-medium">
+                                                        {t("copied", "已复制")}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <Copy className="h-4 w-4 text-slate-500" />
+                                            )}
+                                        </Button>
+                                    </div>
                                 ) : (
                                     renderDiffs(selectedHistory.diffs)
                                 )}
