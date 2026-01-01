@@ -48,9 +48,13 @@ export function useNoteHandle() {
         }
     }, [getHeaders, openConfirmDialog])
 
-    const handleGetNote = useCallback(async (vault: string, path: string, callback: (note: NoteDetail) => void) => {
+    const handleGetNote = useCallback(async (vault: string, path: string, pathHash: string | undefined, callback: (note: NoteDetail) => void) => {
         try {
-            const response = await fetch(addCacheBuster(`${env.API_URL}/api/note?vault=${vault}&path=${encodeURIComponent(path)}`), {
+            let url = `${env.API_URL}/api/note?vault=${vault}&path=${encodeURIComponent(path)}`;
+            if (pathHash) {
+                url += `&pathHash=${pathHash}`;
+            }
+            const response = await fetch(addCacheBuster(url), {
                 method: "GET",
                 headers: getHeaders(),
             })
@@ -138,7 +142,7 @@ export function useNoteHandle() {
             const pageSizeStr = Math.floor(pageSize).toString();
             let url = `${env.API_URL}/api/note/histories?vault=${vault}&path=${encodeURIComponent(notePath)}&page=${pageStr}&pageSize=${pageSizeStr}`;
             if (pathHash) {
-                url += `&path_hash=${pathHash}`;
+                url += `&pathHash=${pathHash}`;
             }
             const response = await fetch(addCacheBuster(url), {
                 method: "GET",

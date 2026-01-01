@@ -46,7 +46,7 @@ export function NoteEditor({
         if (note) {
             setPath(note.path.replace(/\.md$/, ""));
             setLoading(true);
-            handleGetNote(vault, note.path, (data) => {
+            handleGetNote(vault, note.path, note.pathHash, (data) => {
                 setOriginalNote(data);
                 setContent(data.content);
                 setLoading(false);
