@@ -77,7 +77,7 @@ export function LoginForm({ onSuccess, onRegister, registerIsEnable = true }: Lo
             >
               {t("subtitlePluginName")}
             </a>
-            {i18n.language === "zh" && ` ${t("subtitleSuffix")}`}
+            {i18n.language === "zh-CN" && ` ${t("subtitleSuffix")}`}
           </p>
         </div>
       </div>

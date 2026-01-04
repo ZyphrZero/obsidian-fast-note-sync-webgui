@@ -1,4 +1,5 @@
-import i18n from "i18next"
+import i18n from "i18next";
+
 
 // 切换语言
 export const changeLang = (lang: string) => {
@@ -14,5 +15,7 @@ export function getBrowserLang(): string {
   } else {
     lang = navigator.language.toLowerCase()
   }
-  return lang!.startsWith("zh") ? "zh" : "en"
+  let to = lang?.toString()
+
+  return to ? to: "en"
 }

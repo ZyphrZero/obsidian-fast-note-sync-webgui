@@ -1,19 +1,14 @@
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Languages } from "lucide-react"
+import { createRegisterSchema, type RegisterFormData } from "@/lib/validations/user-schema";
+import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { useAuth } from "@/components/api-handle/use-auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-
-import { useAuth } from "@/components/api-handle/use-auth"
-
-import { createRegisterSchema, type RegisterFormData } from "@/lib/validations/user-schema"
-import { changeLang } from "@/lib/i18n/utils"
-
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context"
-
-import { useTranslation } from "react-i18next"
 
 interface RegisterFormProps {
   onSuccess: () => void
@@ -21,7 +16,7 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ onSuccess, onBackToLogin }: RegisterFormProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   //语言包设置
 
   //注册相关
@@ -52,13 +47,7 @@ export function RegisterForm({ onSuccess, onBackToLogin }: RegisterFormProps) {
     <div className="w-full max-w-4xl mx-auto p-5 space-y-4 relative">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{t("registerTitle")}</h1>
-        <Button
-          variant="outline"
-          onClick={() => changeLang(i18n.language === "en" ? "zh" : "en")}
-          className="text-sm font-medium hover:bg-slate-100 transition-colors">
-          <Languages className="mr-2 h-4 w-4" />
-          {i18n.language === "en" ? "中文" : "English"}
-        </Button>
+        <LanguageSwitcher showText={true} className="text-sm font-medium hover:bg-slate-100 transition-colors border" />
       </div>
 
       <div className="space-y-2">

@@ -23,7 +23,7 @@ export function LanguageSwitcher({ className, showText = false }: LanguageSwitch
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
                 <DropdownMenuItem onClick={() => changeLang("en")}>🇺🇸 English</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => changeLang("zh")}>🇨🇳 简体中文</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLang("zh-CN")}>🇨🇳 简体中文</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLang("zh-TW")}>🇭🇰 繁體中文</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLang("ja")}>🇯🇵 日本語</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLang("ko")}>🇰🇷 한국어</DropdownMenuItem>

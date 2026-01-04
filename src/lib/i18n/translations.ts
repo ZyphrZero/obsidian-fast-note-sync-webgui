@@ -3,8 +3,8 @@ import { initReactI18next } from "react-i18next";
 import i18n from "i18next";
 
 import zhTW from "./locales/zh-TW";
+import zhCN from "./locales/zh-CN";
 import ptBR from "./locales/pt-BR";
-import zh from "./locales/zh";
 import vi from "./locales/vi";
 import uk from "./locales/uk";
 import tr from "./locales/tr";
@@ -38,7 +38,7 @@ import ar from "./locales/ar";
 i18n.use(initReactI18next).init({
   resources: {
     en: { translation: en },
-    zh: { translation: zh },
+    "zh-CN": { translation: zhCN },
     ja: { translation: ja },
     ko: { translation: ko },
     "zh-TW": { translation: zhTW },
@@ -70,7 +70,7 @@ i18n.use(initReactI18next).init({
     sq: { translation: sq },
   },
   lng: getBrowserLang(),
-  fallbackLng: "zh",
+  fallbackLng: "zh-CN",
   interpolation: {
     escapeValue: false, // react 已经安全地处理了 HTML 转义
   },
