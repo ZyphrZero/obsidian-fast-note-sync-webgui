@@ -1,14 +1,17 @@
 import { ArrowLeft, Save, Pencil, Folder, History, RefreshCcw, Maximize2, Minimize2 } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
-import { useState, useEffect, useCallback, useMemo } from "react";
 import { Note, NoteDetail } from "@/lib/types/note";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
-import MDEditor from "@uiw/react-md-editor";
 import { hashCode } from "@/lib/utils/hash";
 import env from "@/env.ts";
+
+
+// 动态导入 MDEditor,实现延迟加载
+const MDEditor = lazy(() => import("@uiw/react-md-editor"));
 
 
 interface NoteEditorProps {
@@ -233,14 +236,20 @@ export function NoteEditor({
                     </div>
                 ) : (
                     <div className="flex-1 min-h-[500px] overflow-hidden" data-color-mode="light">
-                        <MDEditor
-                            value={mode === "view" ? processedContent : content}
-                            onChange={(val) => setContent(val || "")}
-                            height="100%"
-                            preview={mode === "view" ? "preview" : "live"}
-                            hideToolbar={mode === "view"}
-                            visibleDragbar={mode === "edit"}
-                        />
+                        <Suspense fallback={
+                            <div className="flex items-center justify-center h-full">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            </div>
+                        }>
+                            <MDEditor
+                                value={mode === "view" ? processedContent : content}
+                                onChange={(val) => setContent(val || "")}
+                                height="100%"
+                                preview={mode === "view" ? "preview" : "live"}
+                                hideToolbar={mode === "view"}
+                                visibleDragbar={mode === "edit"}
+                            />
+                        </Suspense>
                     </div>
                 )}
             </CardContent>
