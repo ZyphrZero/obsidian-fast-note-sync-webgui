@@ -8,6 +8,7 @@ import { NoteManager } from "@/components/note/note-manager";
 import { VaultList } from "@/components/vault/vault-list";
 import { LoginForm } from "@/components/user/login-form";
 import { useState, useEffect, useRef } from "react";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
 import env from "@/env.ts";
 
@@ -333,9 +334,11 @@ function App() {
                             setActiveMenu(item.id)
                             setShowMobileSidebar(false)
                           }}
-                          className={`w-full flex items-center px-3 py-2 rounded-md transition-colors whitespace-nowrap ${activeMenu === item.id ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"}`}>
-                          <item.icon className="mr-3 h-4 w-4" />
-                          {item.label}
+                          className={`w-full flex items-center px-3 py-2 rounded-md transition-colors whitespace-nowrap overflow-hidden ${activeMenu === item.id ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"}`}>
+                          <item.icon className="mr-3 h-4 w-4 shrink-0" />
+                          <Tooltip content={item.label}>
+                            <span className="overflow-hidden whitespace-nowrap flex-1 text-left">{item.label}</span>
+                          </Tooltip>
                         </button>
                         {item.isPlanned && (
                           <div className="absolute right-0 top-0 pointer-events-none">
