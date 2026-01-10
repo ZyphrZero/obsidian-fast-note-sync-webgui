@@ -1,41 +1,49 @@
-import { LogOut, Menu, X, Clipboard, Database, FileText, RefreshCw, GitBranch, Settings, Trash2 } from "lucide-react";
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
-import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { SystemSettings } from "@/components/layout/system-settings";
-import { ChangePassword } from "@/components/user/change-password";
-import { RegisterForm } from "@/components/user/register-form";
-import { NoteManager } from "@/components/note/note-manager";
-import { VaultList } from "@/components/vault/vault-list";
-import { LoginForm } from "@/components/user/login-form";
-import { useState, useEffect, useRef } from "react";
-import { Tooltip } from "@/components/ui/tooltip";
-import { useTranslation } from "react-i18next";
-import env from "@/env.ts";
+import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
-import { useVaultHandle } from "./components/api-handle/vault-handle";
-import { useUserHandle } from "./components/api-handle/user-handle";
-import { useVersion } from "./components/api-handle/use-version";
-import { useAuth } from "./components/context/auth-context";
+import { useVaultHandle } from "@/components/api-handle/vault-handle"
+import { useUserHandle } from "@/components/api-handle/user-handle"
+import { useAuth } from "@/components/context/auth-context"
+import { useAppStore } from "@/stores/app-store"
 
+import { AppLayout } from "@/components/layout/AppLayout"
+import { SystemSettings } from "@/components/layout/system-settings"
+import { NoteManager } from "@/components/note/note-manager"
+import { VaultList } from "@/components/vault/vault-list"
+import { AuthForm } from "@/components/user/auth-form"
+import { ComingSoon } from "@/components/common/ComingSoon"
+import { toast } from "@/components/common/Toast"
+import { ContextMenuProvider } from "@/components/ui/context-menu"
 
+import env from "@/env.ts"
+
+/**
+ * App - 应用主组件
+ * 
+ * 使用新的 AppLayout 布局组件，保持原有功能：
+ * - 认证逻辑
+ * - 模块渲染
+ * - 管理员权限检查
+ * - Zen 模式支持
+ * 
+ * Requirements: 1.5, 10.1, 10.2, 10.3, 10.4, 10.5, 10.7
+ */
 function App() {
   const { t } = useTranslation()
   const { isLoggedIn, login, logout } = useAuth()
-  const { versionInfo } = useVersion()
   const { handleVaultList } = useVaultHandle()
   const { handleUserInfo } = useUserHandle()
+  
+  // 使用 Zustand store 管理应用状态
+  const { currentModule, setModule, zenMode, setZenMode, resetState } = useAppStore()
 
-  const [isRegistering, setIsRegistering] = useState(false)
-  const [activeMenu, setActiveMenu] = useState("vaults")
-  const [activeVault, setActiveVault] = useState("defaultVault")
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showChangePassword, setShowChangePassword] = useState(false)
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
-  const [isMaximized, setIsMaximized] = useState(false)
+  // 本地状态
+  const [activeVault, setActiveVault] = useState<string | null>(null)
+  const [vaultsLoaded, setVaultsLoaded] = useState(false)
   const [registerIsEnable, setRegisterIsEnable] = useState(true)
   const [adminUid, setAdminUid] = useState<number | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
 
+  // 计算当前用户是否为管理员
   const currentUid = localStorage.getItem("uid") ? parseInt(localStorage.getItem("uid")!) : null
   const isAdmin = adminUid !== null && currentUid !== null && (adminUid === 0 || adminUid === currentUid)
 
@@ -46,387 +54,199 @@ function App() {
     }
   }, [isLoggedIn, handleUserInfo, logout])
 
-  // 当切换到笔记页面时,从 API 获取仓库列表并验证当前仓库是否有效
+  // 当切换到笔记页面时，从 API 获取仓库列表并验证当前仓库是否有效
   useEffect(() => {
-    if (activeMenu === "notes" && isLoggedIn) {
+    if ((currentModule === "notes" || currentModule === "trash") && isLoggedIn) {
+      setVaultsLoaded(false)
       handleVaultList((vaults) => {
         if (vaults.length > 0) {
           // 检查当前 activeVault 是否存在于仓库列表中
-          const vaultExists = vaults.some(v => v.vault === activeVault)
+          const vaultExists = activeVault && vaults.some(v => v.vault === activeVault)
 
-          // 如果不存在或为默认值,则设置为第一个仓库
-          if (!vaultExists || activeVault === "defaultVault") {
+          // 如果不存在或未设置，则设置为第一个仓库
+          if (!vaultExists) {
             setActiveVault(vaults[0].vault)
           }
         }
+        setVaultsLoaded(true)
       })
     }
-  }, [activeMenu, isLoggedIn, handleVaultList, activeVault])
+  }, [currentModule, isLoggedIn, handleVaultList, activeVault])
 
   // 动态加载字体和配置
   useEffect(() => {
-    let isMounted = true;
-    let currentFontSet = "";
+    let isMounted = true
+    let currentFontUrl = ""
 
-    const fallbackFonts = `"Segoe UI", Segoe, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`;
+    const updateFonts = (fontUrl: string) => {
+      if (currentFontUrl === fontUrl) return
+      currentFontUrl = fontUrl
 
-    const updateFonts = (fontSet: string) => {
-      if (currentFontSet === fontSet) return;
-      currentFontSet = fontSet;
+      // 移除旧的字体样式
+      const oldLink = document.getElementById("dynamic-font-link")
+      if (oldLink) oldLink.remove()
 
-      // 移除旧的注入标签
-      const oldStyle = document.getElementById("dynamic-font-style");
-      if (oldStyle) oldStyle.remove();
-      const oldLink = document.getElementById("dynamic-font-link");
-      if (oldLink) oldLink.remove();
-
-      let fontFamily = fallbackFonts;
-      let styleContent = "";
-
-      if (fontSet === "local") {
-        fontFamily = `"LXGW WenKai Lite", ${fallbackFonts}`;
-        styleContent = `
-          @font-face {
-            font-family: "LXGW WenKai Lite";
-            src: url("/static/fonts/font.woff2") format("woff");
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-          }
-        `;
-      } else if (fontSet && (fontSet.startsWith("http://") || fontSet.startsWith("https://"))) {
-        if (fontSet.endsWith(".css")) {
-          const link = document.createElement("link");
-          link.id = "dynamic-font-link";
-          link.rel = "stylesheet";
-          link.href = fontSet;
-          link.crossOrigin = "anonymous";
-          document.head.appendChild(link);
-        } else {
-          fontFamily = `"CustomFont", ${fallbackFonts}`;
-          styleContent = `
-            @font-face {
-              font-family: "CustomFont";
-              src: url("${fontSet}");
-              font-weight: normal;
-              font-style: normal;
-              font-display: swap;
-            }
-          `;
-        }
+      // 支持远程 CSS 或服务端字体文件路径
+      if (fontUrl && fontUrl.endsWith(".css")) {
+        const link = document.createElement("link")
+        link.id = "dynamic-font-link"
+        link.rel = "stylesheet"
+        // 服务端路径需要拼接 API_URL
+        link.href = fontUrl.startsWith("/") ? `${env.API_URL.replace(/\/$/, "")}${fontUrl}` : fontUrl
+        link.crossOrigin = "anonymous"
+        document.head.appendChild(link)
       }
-
-      // 始终应用通用样式（包含后备字体）
-      const style = document.createElement("style");
-      style.id = "dynamic-font-style";
-      style.innerHTML = `
-        ${styleContent}
-        body, input, textarea, .w-md-editor, .wmde-markdown {
-          font-family: ${fontFamily} !important;
-        }
-      `;
-      document.head.appendChild(style);
-    };
+    }
 
     const fetchConfig = async () => {
       try {
-        const apiUrl = env.API_URL.endsWith("/") ? env.API_URL.slice(0, -1) : env.API_URL;
-        const response = await fetch(`${apiUrl}/api/webgui/config`);
+        const apiUrl = env.API_URL.endsWith("/") ? env.API_URL.slice(0, -1) : env.API_URL
+        const response = await fetch(`${apiUrl}/api/webgui/config`)
         if (response.ok && isMounted) {
-          const res = await response.json();
+          const res = await response.json()
           if (res.code > 0 && res.data) {
-            updateFonts(res.data.fontSet || res.data.FontSet || "");
+            updateFonts(res.data.fontSet || res.data.FontSet || "")
             if (res.data.registerIsEnable !== undefined) {
-              setRegisterIsEnable(res.data.registerIsEnable);
+              setRegisterIsEnable(res.data.registerIsEnable)
             }
             if (res.data.adminUid !== undefined) {
-              setAdminUid(res.data.adminUid);
+              setAdminUid(res.data.adminUid)
             }
-          } else {
-            updateFonts("");
           }
-        } else if (isMounted) {
-          updateFonts("");
         }
       } catch (error) {
         if (isMounted) {
-          console.error("Failed to fetch webgui config:", error);
-          updateFonts("");
+          console.error("Failed to fetch webgui config:", error)
         }
       }
-    };
+    }
 
-    fetchConfig();
+    fetchConfig()
 
     return () => {
-      isMounted = false;
-    };
+      isMounted = false
+    }
   }, [])
 
-  // 点击外部关闭用户菜单
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false)
-      }
-    }
-
-    if (showUserMenu) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [showUserMenu])
-
-  const handleLoginSuccess = () => {
+  // 处理认证成功
+  const handleAuthSuccess = () => {
     login()
   }
 
-  const handleRegisterSuccess = () => {
-    login()
-    setIsRegistering(false)
+  // 处理登出
+  const handleLogout = () => {
+    // 清除认证状态
+    logout()
+    // 重置应用状态
+    resetState()
   }
 
-  const menuItems = [
-    { id: "vaults", label: t("menuVaults"), icon: Database },
-    { id: "notes", label: t("menuNotes"), icon: FileText },
-    { id: "trash", label: t("menuTrash"), icon: Trash2 },
-    { id: "sync", label: t("menuSync"), icon: RefreshCw, isPlanned: true },
-    { id: "git", label: t("menuGit"), icon: GitBranch, isPlanned: true },
-    { id: "settings", label: t("menuSettings"), icon: Settings },
-  ]
+  // 处理 Zen 模式切换
+  const handleToggleZenMode = () => {
+    setZenMode(!zenMode)
+  }
 
-  const { openConfirmDialog } = useConfirmDialog()
+  // 未登录时显示登录/注册页面
+  if (!isLoggedIn) {
+    return (
+      <ContextMenuProvider>
+        <div className="w-full min-h-screen">
+          <AuthForm onSuccess={handleAuthSuccess} registerIsEnable={registerIsEnable} />
+        </div>
+      </ContextMenuProvider>
+    )
+  }
 
-  const handleCopyConfig = () => {
-    const config = {
-      api: env.API_URL,
-      apiToken: localStorage.getItem("token")!,
-      vault: "defaultVault",
-    }
-
-    const configText = JSON.stringify(config, null, 2)
-
-    if (navigator.clipboard) {
-      navigator.clipboard
-        .writeText(configText)
-        .then(() => {
-          openConfirmDialog(
-            t("copyConfigSuccess"),
-            "success",
-            undefined,
-            <textarea readOnly className="mt-1 block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-none h-52">
-              {configText}
-            </textarea>
+  // 渲染当前模块内容
+  const renderModuleContent = () => {
+    switch (currentModule) {
+      case "notes":
+        // 等待 vault 加载完成
+        if (!vaultsLoaded || !activeVault) {
+          return (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
           )
-        })
-        .catch((err) => {
-          openConfirmDialog(t("error") + err)
-        })
-    } else {
-      openConfirmDialog(
-        t("error") + t("copyConfigError"),
-        "error",
-        undefined,
-        <textarea readOnly className="mt-1 block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 resize-none h-52">
-          {configText}
-        </textarea>
-      )
+        }
+        return (
+          <NoteManager
+            key="notes"
+            vault={activeVault}
+            onVaultChange={setActiveVault}
+            onNavigateToVaults={() => setModule("vaults")}
+            isMaximized={zenMode}
+            onToggleMaximize={handleToggleZenMode}
+          />
+        )
+      
+      case "trash":
+        // 等待 vault 加载完成
+        if (!vaultsLoaded || !activeVault) {
+          return (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )
+        }
+        return (
+          <NoteManager
+            key="trash"
+            vault={activeVault}
+            onVaultChange={setActiveVault}
+            onNavigateToVaults={() => setModule("vaults")}
+            isMaximized={zenMode}
+            onToggleMaximize={handleToggleZenMode}
+            isRecycle={true}
+          />
+        )
+      
+      case "settings":
+        // 非管理员访问设置页面时显示提示并跳转
+        if (!isAdmin) {
+          toast.warning(t("onlyAdminAccess"))
+          setModule("vaults")
+          return null
+        }
+        return (
+          <SystemSettings onBack={() => setModule("vaults")} />
+        )
+      
+      case "sync":
+        return (
+          <ComingSoon 
+            title={t("menuSync") || "远端备份"} 
+            description={t("syncComingSoon") || "远端备份功能正在开发中，将支持 S3、OSS、WebDAV 等多种存储后端。"}
+          />
+        )
+      
+      case "git":
+        return (
+          <ComingSoon 
+            title={t("menuGit") || "Git 自动化"} 
+            description={t("gitComingSoon") || "Git 自动化功能正在开发中，将支持自动提交、推送和版本管理。"}
+          />
+        )
+      
+      case "vaults":
+      default:
+        return (
+          <VaultList
+            onNavigateToNotes={(vaultName) => {
+              setActiveVault(vaultName)
+              setModule("notes")
+            }}
+          />
+        )
     }
   }
 
   return (
-    <div className="flex justify-center w-full min-h-screen bg-gray-100">
-      <div className={`flex flex-col rounded-lg border text-card-foreground shadow-sm w-full ${isMaximized ? "m-0 rounded-none border-none h-screen" : "max-w-[1400px] m-2 sm:m-4 md:m-10 bg-gray-50 overflow-hidden"}`}>
-        {/* Top Navigation Bar */}
-        {!isMaximized && (
-          <div className="border-b px-3 sm:px-6 py-3 flex items-center justify-between bg-gray-50 rounded-t-lg">
-            {/* Logo and Site Name */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Mobile Menu Button */}
-              {isLoggedIn && (
-                <button onClick={() => setShowMobileSidebar(!showMobileSidebar)} className="md:hidden p-2 hover:bg-gray-100 rounded-md">
-                  {showMobileSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </button>
-              )}
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xs sm:text-base">OS</span>
-              </div>
-              <span className="text-sm sm:text-xl font-semibold">Obsidian Fast Note Sync</span>
-            </div>
-
-            {/* User Actions */}
-            {isLoggedIn && (
-              <div className="flex items-center space-x-2">
-                <LanguageSwitcher className="text-gray-600 hover:text-gray-900" />
-                <div className="relative" ref={menuRef}>
-                  <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center space-x-2 hover:bg-gray-100 rounded-full p-2">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-gray-600 text-xs sm:text-base">U</span>
-                    </div>
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border z-10">
-                      <div className="px-4 py-2 text-xs text-gray-400 border-b mb-1 uppercase font-semibold">
-                        {t("userUid", { uid: currentUid })}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowChangePassword(true)
-                          setShowUserMenu(false)
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        {t("changePassword")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          logout()
-                          setShowUserMenu(false)
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        {t("logout")}
-                        <LogOut className="h-4 w-4 inline-block ml-2" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Content Area with Sidebar and Main Content */}
-        <div className="flex flex-1 relative overflow-hidden">
-          {/* Left Sidebar - Desktop and Mobile */}
-          {isLoggedIn && !isMaximized && (
-            <>
-              {/* Mobile Sidebar Overlay */}
-              {showMobileSidebar && <div className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" onClick={() => setShowMobileSidebar(false)} />}
-
-              {/* Sidebar */}
-              <div
-                className={`
-                  fixed md:relative inset-y-0 left-0 z-20 md:z-0
-                  w-48 border-r p-4 bg-gray-50
-                  transform transition-transform duration-200 ease-in-out
-                  ${showMobileSidebar ? "translate-x-0" : "-translate-x-full"}
-                  md:translate-x-0
-                `}>
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold mb-4">{t("navigation")}</h2>
-                  <nav className="space-y-2">
-                    {menuItems.filter(item => item.id !== "settings" || isAdmin).map((item) => (
-                      <div key={item.id} className="relative group">
-                        <button
-                          onClick={() => {
-                            if (item.isPlanned) {
-                              openConfirmDialog(t("underConstruction"), "info")
-                              return
-                            }
-                            if (item.id === "settings" && !isAdmin) {
-                              openConfirmDialog(t("onlyAdminAccess"), "warning")
-                              return
-                            }
-                            setActiveMenu(item.id)
-                            setShowMobileSidebar(false)
-                          }}
-                          className={`w-full flex items-center px-3 py-2 rounded-md transition-colors whitespace-nowrap overflow-hidden ${activeMenu === item.id ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"}`}>
-                          <item.icon className="mr-3 h-4 w-4 shrink-0" />
-                          <Tooltip content={item.label}>
-                            <span className="overflow-hidden whitespace-nowrap flex-1 text-left">{item.label}</span>
-                          </Tooltip>
-                        </button>
-                        {item.isPlanned && (
-                          <div className="absolute right-0 top-0 pointer-events-none">
-                            <span className="px-1 py-0.5 text-[9px] font-medium bg-blue-100 text-blue-600 rounded-bl-md rounded-tr-md border-b border-l border-blue-200 block scale-90 origin-top-right">
-                              {t("planned")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </nav>
-                  <div className="mt-4 pt-4 border-t">
-                    <button onClick={handleCopyConfig} className="w-full flex items-center justify-center px-3 py-2 text-sm bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
-                      <Clipboard className="mr-2 h-4 w-4" />
-                      {t("copyConfig")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Main Content */}
-          <div className={`flex-1 ${!isMaximized ? "py-6 sm:py-8 px-2 sm:px-4 md:px-6 lg:px-8" : "p-0"} ${!isLoggedIn ? "w-full" : ""}`}>
-            {isLoggedIn ? (
-              showChangePassword ? (
-                <div className="max-w-md mx-auto bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                  <h2 className="text-xl font-bold mb-4">{t("changePassword")}</h2>
-                  <ChangePassword close={() => setShowChangePassword(false)} />
-                </div>
-              ) : activeMenu === "notes" ? (
-                <NoteManager
-                  key={activeMenu}
-                  vault={activeVault}
-                  onVaultChange={setActiveVault}
-                  onNavigateToVaults={() => setActiveMenu("vaults")}
-                  isMaximized={isMaximized}
-                  onToggleMaximize={() => setIsMaximized(!isMaximized)}
-                />
-              ) : activeMenu === "trash" ? (
-                <NoteManager
-                  key={activeMenu}
-                  vault={activeVault}
-                  onVaultChange={setActiveVault}
-                  onNavigateToVaults={() => setActiveMenu("vaults")}
-                  isMaximized={isMaximized}
-                  onToggleMaximize={() => setIsMaximized(!isMaximized)}
-                  isRecycle={true}
-                />
-              ) : activeMenu === "settings" && isAdmin ? (
-                <SystemSettings onBack={() => setActiveMenu("vaults")} />
-              ) : (
-                <VaultList onNavigateToNotes={(vaultName) => {
-                  setActiveVault(vaultName);
-                  setActiveMenu("notes");
-                }} />
-              )
-            ) : isRegistering ? (
-              <RegisterForm onSuccess={handleRegisterSuccess} onBackToLogin={() => setIsRegistering(false)} />
-            ) : (
-              <LoginForm onSuccess={handleLoginSuccess} onRegister={() => setIsRegistering(true)} registerIsEnable={registerIsEnable} />
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        {!isMaximized && (
-          <div className="border-t px-4 py-3 bg-gray-50 text-center text-sm text-gray-600 rounded-b-lg">
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-2">
-              <span>© 2024 Obsidian Fast Note Sync Service</span>
-              <span className="hidden sm:inline">•</span>
-              <a href="https://github.com/haierkeys/fast-note-sync-service" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">
-                GitHub
-              </a>
-              {versionInfo && (
-                <>
-                  <span className="hidden sm:inline">•</span>
-                  <span className="text-gray-500">
-                    v{versionInfo.version}
-                    {versionInfo.gitTag && ` ( ${versionInfo.gitTag} / ${versionInfo.buildTime} )`}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <ContextMenuProvider>
+      <AppLayout isAdmin={isAdmin} onLogout={handleLogout}>
+        {renderModuleContent()}
+      </AppLayout>
+    </ContextMenuProvider>
   )
 }
 

@@ -1,5 +1,5 @@
 import { Note, NoteDetail, NoteResponse, NoteHistoryDetail, NoteHistoryListResponse } from "@/lib/types/note";
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
+import { toast } from "@/components/common/Toast";
 import { addCacheBuster } from "@/lib/utils/cache-buster";
 import { getBrowserLang } from "@/lib/i18n/utils";
 import { useCallback, useMemo } from "react";
@@ -7,7 +7,6 @@ import env from "@/env.ts";
 
 
 export function useNoteHandle() {
-    const { openConfirmDialog } = useConfirmDialog()
     const token = localStorage.getItem("token")!
 
     const getHeaders = useCallback(() => ({
@@ -17,7 +16,18 @@ export function useNoteHandle() {
         Lang: getBrowserLang(),
     }), [token])
 
-    const handleNoteList = useCallback(async (vault: string, page: number, pageSize: number, keyword: string = "", isRecycle: boolean = false, callback: (data: { list: Note[], pager: { page: number, pageSize: number, totalRows: number } }) => void) => {
+    const handleNoteList = useCallback(async (
+        vault: string, 
+        page: number, 
+        pageSize: number, 
+        keyword: string = "", 
+        isRecycle: boolean = false, 
+        searchMode: string = "path",
+        searchContent: boolean = false,
+        sortBy: string = "mtime",
+        sortOrder: string = "desc",
+        callback: (data: { list: Note[], pager: { page: number, pageSize: number, totalRows: number } }) => void
+    ) => {
         try {
             // Ensure page and pageSize are integers strings
             const pageStr = Math.floor(page).toString();
@@ -29,6 +39,18 @@ export function useNoteHandle() {
             }
             if (isRecycle) {
                 url += `&isRecycle=1`;
+            }
+            if (searchMode && searchMode !== "path") {
+                url += `&searchMode=${searchMode}`;
+            }
+            if (searchContent) {
+                url += `&searchContent=1`;
+            }
+            if (sortBy && sortBy !== "mtime") {
+                url += `&sortBy=${sortBy}`;
+            }
+            if (sortOrder && sortOrder !== "desc") {
+                url += `&sortOrder=${sortOrder}`;
             }
 
             const response = await fetch(addCacheBuster(url), {
@@ -44,12 +66,13 @@ export function useNoteHandle() {
                 if (!data.list) data.list = [];
                 callback(data)
             } else {
-                openConfirmDialog(res.message, "error")
+                toast.error(res.message)
             }
         } catch (error: unknown) {
-            openConfirmDialog(error instanceof Error ? error.message : String(error), "error")
+            toast.error(error instanceof Error ? error.message : String(error))
         }
-    }, [getHeaders, openConfirmDialog])
+    }, [getHeaders])
+
 
     const handleGetNote = useCallback(async (vault: string, path: string, pathHash: string | undefined, isRecycle: boolean = false, callback: (note: NoteDetail) => void) => {
         try {
@@ -74,12 +97,12 @@ export function useNoteHandle() {
                 // handle empty data
                 console.warn("GetNote returned 200 but data is null");
             } else {
-                openConfirmDialog(res.message, "error")
+                toast.error(res.message)
             }
         } catch (error: unknown) {
-            openConfirmDialog(error instanceof Error ? error.message : String(error), "error")
+            toast.error(error instanceof Error ? error.message : String(error))
         }
-    }, [getHeaders, openConfirmDialog])
+    }, [getHeaders])
 
     const handleSaveNote = useCallback(async (
         vault: string,
@@ -87,7 +110,8 @@ export function useNoteHandle() {
         content: string,
         options: { pathHash?: string; srcPath?: string; srcPathHash?: string; contentHash?: string } = {},
         onSuccess: () => void,
-        onError?: (error: string) => void
+        onError?: (error: string) => void,
+        silent: boolean = false
     ) => {
         try {
             const body = {
@@ -106,19 +130,21 @@ export function useNoteHandle() {
             }
             const res: NoteResponse<unknown> = await response.json()
             if (res.code > 0 && res.code <= 200) {
-                openConfirmDialog(res.message, "success")
+                if (!silent) {
+                    toast.success(res.message)
+                }
                 onSuccess()
             } else {
                 const errMsg = res.message + (res.details ? ": " + res.details.join(", ") : "");
-                openConfirmDialog(errMsg, "error")
+                toast.error(errMsg)
                 if (onError) onError(errMsg)
             }
         } catch (error: unknown) {
             const errMsg = error instanceof Error ? error.message : String(error);
-            openConfirmDialog(errMsg, "error")
+            toast.error(errMsg)
             if (onError) onError(errMsg)
         }
-    }, [getHeaders, openConfirmDialog])
+    }, [getHeaders])
 
     const handleDeleteNote = useCallback(async (vault: string, path: string, pathHash: string | undefined, callback: () => void) => {
         try {
@@ -137,15 +163,16 @@ export function useNoteHandle() {
             }
             const res: NoteResponse<unknown> = await response.json()
             if (res.code > 0 && res.code <= 200) {
-                openConfirmDialog(res.message, "success")
+                toast.success(res.message)
                 callback()
             } else {
-                openConfirmDialog(res.message + (res.details ? ": " + res.details.join(", ") : ""), "error")
+                toast.error(res.message + (res.details ? ": " + res.details.join(", ") : ""))
             }
         } catch (error: unknown) {
-            openConfirmDialog(error instanceof Error ? error.message : String(error), "error")
+            toast.error(error instanceof Error ? error.message : String(error))
         }
-    }, [getHeaders, openConfirmDialog])
+    }, [getHeaders])
+
 
     const handleNoteHistoryList = useCallback(async (vault: string, notePath: string, pathHash: string | undefined, page: number, pageSize: number, isRecycle: boolean = false, callback: (data: NoteHistoryListResponse) => void) => {
         try {
@@ -171,12 +198,12 @@ export function useNoteHandle() {
                 if (!data.list) data.list = [];
                 callback(data)
             } else {
-                openConfirmDialog(res.message, "error")
+                toast.error(res.message)
             }
         } catch (error: unknown) {
-            openConfirmDialog(error instanceof Error ? error.message : String(error), "error")
+            toast.error(error instanceof Error ? error.message : String(error))
         }
-    }, [getHeaders, openConfirmDialog])
+    }, [getHeaders])
 
     const handleNoteHistoryDetail = useCallback(async (vault: string, id: number, callback: (data: NoteHistoryDetail) => void) => {
         try {
@@ -191,12 +218,12 @@ export function useNoteHandle() {
             if (res.code > 0 && res.code <= 200 && res.data) {
                 callback(res.data)
             } else {
-                openConfirmDialog(res.message, "error")
+                toast.error(res.message)
             }
         } catch (error: unknown) {
-            openConfirmDialog(error instanceof Error ? error.message : String(error), "error")
+            toast.error(error instanceof Error ? error.message : String(error))
         }
-    }, [getHeaders, openConfirmDialog])
+    }, [getHeaders])
 
     return useMemo(() => ({
         handleNoteList,

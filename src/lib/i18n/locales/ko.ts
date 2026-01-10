@@ -130,7 +130,7 @@ export default {
     softDeleteRetentionTime: "논리 삭제 노트 보존 시간",
     uploadSessionTimeout: "파일 업로드 세션 시간 초과",
     adminUid: "시스템 설정 액세스 제한 ( 사용자 UID )",
-    fontSetDesc: "WebGui 인터페이스 글꼴을 설정합니다. 비워두면 시스템 기본 글꼴을 사용합니다. 'local'(내장 LXGW WenKai 글꼴) 또는 네트워크 글꼴을 설정할 수 있습니다.\n예: https://ik.imagekit.io/haierkeys/LXGWWenKai-Light.woff2\n기본값: local",
+    fontSetDesc: "WebGui 인터페이스 글꼴을 설정합니다. 비워두면 시스템 기본 글꼴을 사용합니다. 원격 CSS 글꼴 스타일시트 또는 서버 측 글꼴 파일 경로를 지원합니다.\n예: https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap\n예: /static/fonts/custom-font.css\n기본값: 비어 있음",
     registerIsEnableDesc: "새 사용자가 이 서비스에서 계정을 생성할 수 있는지 여부입니다. 기본값: 활성화",
     fileChunkSizeDesc: "업로드 시 청크 크기(예: 1MB, 512KB), 512KB-2MB 권장. 기본값: 512KB",
     softDeleteRetentionTimeDesc: "노트 삭제 후 보존 기간(예: 30d, 24h), 0은 자동 정리 안 함. 너무 짧게 설정하면 오프라인 장치에서 삭제 작업을 동기화하지 못할 수 있으므로 주의해서 설정하십시오. 기본값: 7d",

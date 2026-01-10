@@ -1,4 +1,4 @@
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context"
+import { toast } from "@/components/common/Toast"
 import { addCacheBuster } from "@/lib/utils/cache-buster"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "react-i18next"
@@ -9,7 +9,6 @@ import env from "@/env.ts"
 
 export function ChangePassword({ close }: { close: () => void }) {
   const { t } = useTranslation()
-  const { openConfirmDialog } = useConfirmDialog()
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -19,7 +18,7 @@ export function ChangePassword({ close }: { close: () => void }) {
     e.preventDefault()
 
     if (newPassword !== confirmPassword) {
-      openConfirmDialog(t("passwordMismatch"), "error")
+      toast.error(t("passwordMismatch"))
       return
     }
 
@@ -43,13 +42,13 @@ export function ChangePassword({ close }: { close: () => void }) {
       const data = await response.json()
 
       if (data.status === true) {
-        openConfirmDialog(data.message || t("passwordChangedSuccess"), "success")
+        toast.success(data.message || t("passwordChangedSuccess"))
         close()
       } else {
-        openConfirmDialog(data.details || data.message || t("passwordChangeFailed"), "error")
+        toast.error(data.details || data.message || t("passwordChangeFailed"))
       }
-    } catch (error) {
-      openConfirmDialog(t("passwordChangeFailed"), "error")
+    } catch {
+      toast.error(t("passwordChangeFailed"))
     } finally {
       setIsSubmitting(false)
     }

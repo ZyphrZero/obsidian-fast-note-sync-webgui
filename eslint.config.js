@@ -8,12 +8,21 @@ import js from '@eslint/js';
 
 export default [
     { ignores: ['dist'] },
+    // Config for source files (browser environment)
     {
-        files: ['**/*.{ts,tsx}'],
+        files: ['src/**/*.{ts,tsx}'],
         languageOptions: {
             ecmaVersion: 2020,
-            globals: globals.browser,
+            globals: {
+                ...globals.browser,
+                React: 'readonly',
+                JSX: 'readonly',
+            },
             parser: tsParser,
+            parserOptions: {
+                ecmaFeatures: { jsx: true },
+                jsxPragma: null, // React 17+ JSX transform
+            },
         },
         plugins: {
             'react-hooks': reactHooks,
@@ -26,8 +35,30 @@ export default [
             ...reactHooks.configs.recommended.rules,
             'react-refresh/only-export-components': [
                 'warn',
-                { allowConstantExport: true },
+                { allowConstantExport: true, allowExportNames: ['useAuth', 'useConfirmDialog', 'useTheme'] },
             ],
+            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+            '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
+            'no-undef': 'off', // TypeScript handles this
+        },
+    },
+    // Config for Node.js files (vite, vitest configs)
+    {
+        files: ['*.config.{ts,js}', 'vite.config.ts', 'vitest.config.ts'],
+        languageOptions: {
+            ecmaVersion: 2020,
+            globals: {
+                ...globals.node,
+            },
+            parser: tsParser,
+        },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+        },
+        rules: {
+            ...js.configs.recommended.rules,
+            ...tsPlugin.configs.recommended.rules,
+            'no-undef': 'off',
         },
     },
 ];

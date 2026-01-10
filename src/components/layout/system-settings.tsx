@@ -1,5 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSettingsStore, ToastPosition } from "@/lib/stores/settings-store";
+import { useVersion } from "@/components/api-handle/use-version";
+import { toast } from "@/components/common/Toast";
 import { addCacheBuster } from "@/lib/utils/cache-buster";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getBrowserLang } from "@/lib/i18n/utils";
@@ -7,9 +9,35 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { 
+    Info, 
+    GitBranch, 
+    Tag, 
+    Bell, 
+    Type, 
+    UserPlus, 
+    HardDrive, 
+    Trash2, 
+    Clock, 
+    Shield,
+    Sun,
+    User,
+    Pencil,
+    Lock,
+    Loader2
+} from "lucide-react";
 import env from "@/env.ts";
 
+const TOAST_POSITIONS: ToastPosition[] = [
+    'top-left',
+    'top-center',
+    'top-right',
+    'bottom-left',
+    'bottom-center',
+    'bottom-right',
+];
 
 interface SystemConfig {
     fontSet: string
@@ -22,11 +50,84 @@ interface SystemConfig {
 
 export function SystemSettings({ onBack }: { onBack?: () => void }) {
     const { t } = useTranslation()
-    const { openConfirmDialog } = useConfirmDialog()
     const [config, setConfig] = useState<SystemConfig | null>(null)
     const [loading, setLoading] = useState(true)
-    const [saving, setSaving] = useState(false)
+    const [autoSaving, setAutoSaving] = useState(false)
     const token = localStorage.getItem("token")
+    const { toastPosition, setToastPosition } = useSettingsStore()
+    const { versionInfo, isLoading: versionLoading } = useVersion()
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const pendingConfigRef = useRef<SystemConfig | null>(null)
+
+    // 账户设置状态
+    const [newUsername, setNewUsername] = useState("")
+    const [savingUsername, setSavingUsername] = useState(false)
+    const [oldPassword, setOldPassword] = useState("")
+    const [newPassword, setNewPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [savingPassword, setSavingPassword] = useState(false)
+    const [showOldPassword, setShowOldPassword] = useState(false)
+    const [showNewPassword, setShowNewPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+    // adminUid 单独管理（手动保存）
+    const [adminUidInput, setAdminUidInput] = useState("")
+    const [savingAdminUid, setSavingAdminUid] = useState(false)
+
+    // 自动保存配置（防抖）
+    const autoSaveConfig = useCallback(async (newConfig: SystemConfig) => {
+        setAutoSaving(true)
+        try {
+            const response = await fetch(addCacheBuster(env.API_URL + "/api/admin/config"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Token: token || "",
+                    Lang: getBrowserLang(),
+                },
+                body: JSON.stringify(newConfig),
+            })
+            const res = await response.json()
+            if (res.code === 0 || (res.code < 100 && res.code > 0)) {
+                toast.success(t("saveSuccess") || "保存成功")
+            } else {
+                toast.error(res.message || t("saveFailed"))
+            }
+        } catch {
+            toast.error(t("saveFailed"))
+        } finally {
+            setAutoSaving(false)
+        }
+    }, [token, t])
+
+    // 更新配置并触发自动保存
+    const updateConfig = useCallback((updates: Partial<SystemConfig>) => {
+        if (!config) return
+        const newConfig = { ...config, ...updates }
+        setConfig(newConfig)
+        pendingConfigRef.current = newConfig
+        
+        // 清除之前的定时器
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current)
+        }
+        
+        // 防抖：500ms 后自动保存
+        saveTimeoutRef.current = setTimeout(() => {
+            if (pendingConfigRef.current) {
+                autoSaveConfig(pendingConfigRef.current)
+            }
+        }, 500)
+    }, [config, autoSaveConfig])
+
+    // 清理定时器
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current)
+            }
+        }
+    }, [])
 
     useEffect(() => {
         const fetchConfig = async () => {
@@ -41,22 +142,99 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
                 const res = await response.json()
                 if (res.code === 0 || (res.code < 100 && res.code > 0)) {
                     setConfig(res.data)
+                    setAdminUidInput(String(res.data.adminUid))
                 } else {
-                    openConfirmDialog(res.message || t("error"), "error", onBack)
+                    toast.error(res.message || t("error"))
+                    onBack?.()
                 }
             } catch {
-                openConfirmDialog(t("error"), "error", onBack)
+                toast.error(t("error"))
+                onBack?.()
             } finally {
                 setLoading(false)
             }
         }
         fetchConfig()
-    }, [token, openConfirmDialog, t, onBack])
+    }, [token, t, onBack])
 
-    const handleSave = async () => {
-        if (!config) return
-        setSaving(true)
+    // 修改用户名
+    const handleChangeUsername = async () => {
+        if (!newUsername.trim()) {
+            toast.error(t("usernameRequired") || "请输入用户名")
+            return
+        }
+        setSavingUsername(true)
         try {
+            const formData = new FormData()
+            formData.append("username", newUsername.trim())
+            const response = await fetch(addCacheBuster(env.API_URL + "/api/user/change_username"), {
+                method: "POST",
+                headers: { Token: token || "" },
+                body: formData,
+            })
+            const res = await response.json()
+            if (res.status === true || res.code === 0) {
+                toast.success(t("usernameChangedSuccess") || "用户名修改成功")
+                localStorage.setItem("username", newUsername.trim())
+                setNewUsername("")
+            } else {
+                toast.error(res.message || t("usernameChangeFailed") || "用户名修改失败")
+            }
+        } catch {
+            toast.error(t("usernameChangeFailed") || "用户名修改失败")
+        } finally {
+            setSavingUsername(false)
+        }
+    }
+
+    // 修改密码
+    const handleChangePassword = async () => {
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            toast.error(t("fillAllFields") || "请填写所有字段")
+            return
+        }
+        if (newPassword !== confirmPassword) {
+            toast.error(t("passwordMismatch") || "两次输入的密码不一致")
+            return
+        }
+        setSavingPassword(true)
+        try {
+            const formData = new FormData()
+            formData.append("oldPassword", oldPassword)
+            formData.append("password", newPassword)
+            formData.append("confirmPassword", confirmPassword)
+            const response = await fetch(addCacheBuster(env.API_URL + "/api/user/change_password"), {
+                method: "POST",
+                headers: { Token: token || "" },
+                body: formData,
+            })
+            const res = await response.json()
+            if (res.status === true || res.code === 0) {
+                toast.success(t("passwordChangedSuccess") || "密码修改成功")
+                setOldPassword("")
+                setNewPassword("")
+                setConfirmPassword("")
+            } else {
+                toast.error(res.details || res.message || t("passwordChangeFailed") || "密码修改失败")
+            }
+        } catch {
+            toast.error(t("passwordChangeFailed") || "密码修改失败")
+        } finally {
+            setSavingPassword(false)
+        }
+    }
+
+    // 手动保存 adminUid
+    const handleSaveAdminUid = async () => {
+        if (!config) return
+        const uidValue = adminUidInput.trim() === "" ? 0 : parseInt(adminUidInput)
+        if (isNaN(uidValue)) {
+            toast.error(t("invalidNumber") || "请输入有效数字")
+            return
+        }
+        setSavingAdminUid(true)
+        try {
+            const newConfig = { ...config, adminUid: uidValue }
             const response = await fetch(addCacheBuster(env.API_URL + "/api/admin/config"), {
                 method: "POST",
                 headers: {
@@ -64,18 +242,19 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
                     Token: token || "",
                     Lang: getBrowserLang(),
                 },
-                body: JSON.stringify(config),
+                body: JSON.stringify(newConfig),
             })
             const res = await response.json()
             if (res.code === 0 || (res.code < 100 && res.code > 0)) {
-                openConfirmDialog(t("saveSuccess"), "success")
+                toast.success(t("saveSuccess") || "保存成功")
+                setConfig(newConfig)
             } else {
-                openConfirmDialog(res.message || t("saveFailed"), "error", onBack)
+                toast.error(res.message || t("saveFailed"))
             }
         } catch {
-            openConfirmDialog(t("saveFailed"), "error", onBack)
+            toast.error(t("saveFailed"))
         } finally {
-            setSaving(false)
+            setSavingAdminUid(false)
         }
     }
 
@@ -84,91 +263,292 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
     }
 
     if (!config) {
-        return <div className="p-8 text-center text-red-500">{t("error")}</div>
+        return <div className="p-8 text-center text-destructive">{t("error")}</div>
     }
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t("systemSettings")}</CardTitle>
-                    <CardDescription>管理同步服务的全局配置</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="fontSet">{t("fontSet")}</Label>
-                        <Input
-                            id="fontSet"
-                            value={config.fontSet}
-                            onChange={(e) => setConfig({ ...config, fontSet: e.target.value })}
-                            placeholder="e.g. /static/fonts/font.woff2 or local"
-                        />
-                        <p className="text-xs text-gray-500 whitespace-pre-line">{t("fontSetDesc")}</p>
+        <div className="flex flex-col gap-4 pb-24 md:columns-2 md:block md:[&>div]:mb-4 md:[&>div]:break-inside-avoid md:pb-4">
+            {/* 自动保存指示器 */}
+            {autoSaving && (
+                <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">{t("autoSaving") || "保存中..."}</span>
+                </div>
+            )}
+            {/* 账户设置 */}
+            <div>
+                <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+                    <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        {t("accountSettings") || "账户设置"}
+                    </h2>
+                    
+                    {/* 修改用户名 */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Pencil className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("changeUsername") || "修改用户名"}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Input
+                                value={newUsername}
+                                onChange={(e) => setNewUsername(e.target.value)}
+                                placeholder={t("enterNewUsername") || "请输入新用户名"}
+                                className="rounded-xl flex-1"
+                            />
+                            <Button 
+                                onClick={handleChangeUsername} 
+                                disabled={savingUsername || !newUsername.trim()}
+                                className="rounded-xl"
+                            >
+                                {savingUsername ? t("submitting") : t("save")}
+                            </Button>
+                        </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="border-t border-border" />
+
+                    {/* 修改密码 */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Lock className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("changePassword") || "修改密码"}</span>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="relative">
+                                <Input
+                                    type={showOldPassword ? "text" : "password"}
+                                    value={oldPassword}
+                                    onChange={(e) => setOldPassword(e.target.value)}
+                                    placeholder={t("currentPassword") || "请输入当前密码"}
+                                    className="rounded-xl pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowOldPassword(!showOldPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showOldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <Input
+                                    type={showNewPassword ? "text" : "password"}
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder={t("newPassword") || "请输入新密码"}
+                                    className="rounded-xl pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <Input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder={t("confirmNewPassword") || "请确认新密码"}
+                                    className="rounded-xl pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            <Button 
+                                onClick={handleChangePassword} 
+                                disabled={savingPassword || !oldPassword || !newPassword || !confirmPassword}
+                                className="w-full rounded-xl"
+                            >
+                                {savingPassword ? t("submitting") : t("changePassword")}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 版本信息 */}
+            <div>
+                <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+                    <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                        <Info className="h-5 w-5" />
+                        {t("versionInfo")}
+                    </h2>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <GitBranch className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("githubRepo")}</span>
+                        </div>
+                        <a 
+                            href="https://github.com/haierkeys/obsidian-fast-note-sync" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline"
+                        >
+                            haierkeys/fast-note-sync
+                        </a>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Tag className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("currentVersion")}</span>
+                        </div>
+                        <code className="text-sm font-mono text-muted-foreground">
+                            {versionLoading ? t("loading") : (versionInfo?.version || t("unknown"))}
+                        </code>
+                    </div>
+                </div>
+            </div>
+
+            {/* 外观设置 */}
+            <div>
+                <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+                    <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                        <Sun className="h-5 w-5" />
+                        {t("appearance") || "外观"}
+                    </h2>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Bell className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("toastPosition")}</span>
+                        </div>
+                        <Select value={toastPosition} onValueChange={(value) => setToastPosition(value as ToastPosition)}>
+                            <SelectTrigger className="w-36 rounded-xl">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                                {TOAST_POSITIONS.map((pos) => (
+                                    <SelectItem key={pos} value={pos} className="rounded-xl">
+                                        {t(`position.${pos}`)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Type className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("fontSet")}</span>
+                        </div>
+                        <Input
+                            value={config.fontSet}
+                            onChange={(e) => updateConfig({ fontSet: e.target.value })}
+                            placeholder="e.g. /static/fonts/font.css"
+                            className="rounded-xl"
+                        />
+                        <p className="text-xs text-muted-foreground">{t("fontSetDesc")}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* 用户设置 */}
+            <div>
+                <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+                    <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                        <UserPlus className="h-5 w-5" />
+                        {t("userSettings") || "用户设置"}
+                    </h2>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <UserPlus className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("registerIsEnable")}</span>
+                        </div>
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 id="registerIsEnable"
                                 checked={config.registerIsEnable}
-                                onCheckedChange={(checked) => setConfig({ ...config, registerIsEnable: !!checked })}
+                                onCheckedChange={(checked) => updateConfig({ registerIsEnable: !!checked })}
                             />
-                            <Label htmlFor="registerIsEnable">{t("registerIsEnable")}</Label>
+                            <Label htmlFor="registerIsEnable" className="text-sm">
+                                {config.registerIsEnable ? t("isEnabled") : t("close")}
+                            </Label>
                         </div>
-                        <p className="text-xs text-gray-500 whitespace-pre-line">{t("registerIsEnableDesc")}</p>
+                        <p className="text-xs text-muted-foreground">{t("registerIsEnableDesc")}</p>
                     </div>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Shield className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("adminUid")}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Input
+                                value={adminUidInput}
+                                onChange={(e) => setAdminUidInput(e.target.value)}
+                                placeholder="e.g. 1"
+                                className="rounded-xl flex-1"
+                            />
+                            <Button 
+                                onClick={handleSaveAdminUid} 
+                                disabled={savingAdminUid}
+                                className="rounded-xl"
+                            >
+                                {savingAdminUid ? t("submitting") : t("save")}
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t("adminUidDesc")}</p>
+                    </div>
+                </div>
+            </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="fileChunkSize">{t("fileChunkSize")}</Label>
+            {/* 存储设置 */}
+            <div>
+                <div className="rounded-3xl border border-border bg-card p-6 space-y-5">
+                    <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+                        <HardDrive className="h-5 w-5" />
+                        {t("storageSettings") || "存储设置"}
+                    </h2>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <HardDrive className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("fileChunkSize")}</span>
+                        </div>
                         <Input
-                            id="fileChunkSize"
                             value={config.fileChunkSize}
-                            onChange={(e) => setConfig({ ...config, fileChunkSize: e.target.value })}
+                            onChange={(e) => updateConfig({ fileChunkSize: e.target.value })}
                             placeholder="e.g. 1MB, 512KB"
+                            className="rounded-xl"
                         />
-                        <p className="text-xs text-gray-500 whitespace-pre-line">{t("fileChunkSizeDesc")}</p>
+                        <p className="text-xs text-muted-foreground">{t("fileChunkSizeDesc")}</p>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="softDeleteRetentionTime">{t("softDeleteRetentionTime")}</Label>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Trash2 className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("softDeleteRetentionTime")}</span>
+                        </div>
                         <Input
-                            id="softDeleteRetentionTime"
                             value={config.softDeleteRetentionTime}
-                            onChange={(e) => setConfig({ ...config, softDeleteRetentionTime: e.target.value })}
+                            onChange={(e) => updateConfig({ softDeleteRetentionTime: e.target.value })}
                             placeholder="e.g. 30d, 24h"
+                            className="rounded-xl"
                         />
-                        <p className="text-xs text-gray-500 whitespace-pre-line">{t("softDeleteRetentionTimeDesc")}</p>
+                        <p className="text-xs text-muted-foreground">{t("softDeleteRetentionTimeDesc")}</p>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="uploadSessionTimeout">{t("uploadSessionTimeout")}</Label>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <Clock className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("uploadSessionTimeout")}</span>
+                        </div>
                         <Input
-                            id="uploadSessionTimeout"
                             value={config.uploadSessionTimeout}
-                            onChange={(e) => setConfig({ ...config, uploadSessionTimeout: e.target.value })}
+                            onChange={(e) => updateConfig({ uploadSessionTimeout: e.target.value })}
                             placeholder="e.g. 1h, 30m"
+                            className="rounded-xl"
                         />
-                        <p className="text-xs text-gray-500 whitespace-pre-line">{t("uploadSessionTimeoutDesc")}</p>
+                        <p className="text-xs text-muted-foreground">{t("uploadSessionTimeoutDesc")}</p>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="adminUid">{t("adminUid")}</Label>
-                        <Input
-                            id="adminUid"
-                            type="number"
-                            value={config.adminUid}
-                            onChange={(e) => setConfig({ ...config, adminUid: parseInt(e.target.value) || 0 })}
-                        />
-                        <p className="text-xs text-gray-500 whitespace-pre-line">{t("adminUidDesc")}</p>
-                    </div>
-
-                    <div className="pt-4">
-                        <Button onClick={handleSave} disabled={saving} className="w-full">
-                            {saving ? t("submitting") : t("save")}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

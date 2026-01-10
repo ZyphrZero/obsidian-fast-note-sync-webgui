@@ -27,12 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setIsLoggedIn(false);
-    localStorage.removeItem('user'); // 清除用户信息
+    // 清除所有认证相关的 localStorage 项
+    localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('avatar');
     localStorage.removeItem('uid');
-
+    localStorage.removeItem('email');
   };
 
   return (

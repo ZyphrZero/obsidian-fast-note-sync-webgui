@@ -130,7 +130,7 @@ export default {
     softDeleteRetentionTime: "軟刪除筆記保留時間",
     uploadSessionTimeout: "文件上傳會話超時",
     adminUid: "系統設置訪問限制 ( ユーザー UID )",
-    fontSetDesc: "設置 WebGui 界面字體，留空則使用系統默認字體。'local'（內置霞鹜文楷字體），也可以設置網絡字體。\n示例：https://ik.imagekit.io/haierkeys/LXGWWenKai-Light.woff2\n默認：local",
+    fontSetDesc: "設置 WebGui 界面字體，留空則使用系統默認字體。支持遠程 CSS 字體樣式表或服務端字體文件路徑。\n示例：https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap\n示例：/static/fonts/custom-font.css\n默認：空",
     registerIsEnableDesc: "是否允許新用戶在此服務上創建帳戶，默認：開啟",
     fileChunkSizeDesc: "上傳時分塊大小（如 1MB, 512KB），建議 512KB-2MB，默認：512KB",
     softDeleteRetentionTimeDesc: "刪除筆記後的保留時長（如 30d, 24h），0 為不自動清理，本設置過短會導致離線設備無法同步刪除操作，請謹慎設置，默認：7d",
@@ -140,4 +140,18 @@ export default {
     saveFailed: "設置保存失敗",
     onlyAdminAccess: "僅管理員可訪問此頁面",
     userUid: "用戶 UID: {{uid}}",
+    // 通知位置設置
+    toastPosition: "通知顯示位置",
+    toastPositionDesc: "設置通知消息在屏幕上的顯示位置",
+    "position.top-left": "左上角",
+    "position.top-center": "頂部居中",
+    "position.top-right": "右上角",
+    "position.bottom-left": "左下角",
+    "position.bottom-center": "底部居中",
+    "position.bottom-right": "右下角",
+    // 版本信息
+    versionInfo: "版本信息",
+    githubRepo: "GitHub 倉庫",
+    currentVersion: "當前版本",
+    unknown: "未知",
 };

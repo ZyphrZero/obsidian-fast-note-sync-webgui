@@ -36,7 +36,7 @@ export function useAuth() {
       } else {
         return { success: false, error: res.message + ": " + res.details }
       }
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: "接口请求失败,请检查网络状态" }
     } finally {
       setIsLoading(false)
@@ -72,7 +72,7 @@ export function useAuth() {
       } else {
         return { success: false, error: res.message + ": " + res.details }
       }
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: "注册失败，请重试" }
     } finally {
       setIsLoading(false)

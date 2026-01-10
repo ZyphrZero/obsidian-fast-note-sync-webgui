@@ -19,28 +19,27 @@ const ConfirmDialogContext = createContext<ConfirmDialogContextType | undefined>
 export const ConfirmDialogProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [message, setMessage] = useState("")
-  const [type, setType] = useState("error")
+  const [type, setType] = useState("confirm")
   const [handleConfirm, setHandleConfirm] = useState<() => void | undefined>()
   const [customChildren, setCustomChildren] = useState<ReactNode | undefined>()
 
+  // 关闭对话框，只设置 isOpen 为 false，不重置其他状态
+  // 这样在关闭动画期间，对话框内容保持不变
   const handleCancel = () => {
     setIsDialogOpen(false)
-    setMessage("")
-    setType("error")
-    setHandleConfirm(undefined)
-    setCustomChildren(undefined)
   }
 
   const handleConfirmClick = () => {
     if (handleConfirm) {
       handleConfirm()
     }
-    handleCancel()
+    setIsDialogOpen(false)
   }
 
   const openConfirmDialog = React.useCallback((message: string, type?: string, onConfirm?: () => void, children?: ReactNode) => {
+    // 打开时设置所有状态
     setMessage(message)
-    setType(type || "error")
+    setType(type || "confirm")
     setHandleConfirm(() => onConfirm)
     setCustomChildren(children)
     setIsDialogOpen(true)

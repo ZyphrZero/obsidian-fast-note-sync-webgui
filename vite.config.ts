@@ -30,41 +30,108 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500, // 降低警告阈值到 1MB
     rollupOptions: {
       output: {
-        // 代码分割策略
-        manualChunks: {
+        // 代码分割策略 - 使用函数形式更灵活地处理依赖
+        manualChunks(id) {
           // React 核心库
-          'vendor-react': ['react', 'react-dom', 'react-hook-form'],
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/')) {
+            return 'vendor-react';
+          }
+          
+          // React Hook Form
+          if (id.includes('node_modules/react-hook-form/') ||
+              id.includes('node_modules/@hookform/')) {
+            return 'vendor-form';
+          }
 
-          // UI 组件库
-          'vendor-ui': [
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-label',
-            '@radix-ui/react-select',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-tabs',
-            '@headlessui/react',
-          ],
+          // ProseMirror 编辑器引擎
+          if (id.includes('node_modules/prosemirror-') ||
+              id.includes('node_modules/@prosemirror-adapter/')) {
+            return 'vendor-prosemirror';
+          }
 
-          // Markdown 编辑器 (体积较大,单独分割)
-          'vendor-editor': ['@uiw/react-md-editor'],
+          // CodeMirror 核心
+          if (id.includes('node_modules/@codemirror/state') ||
+              id.includes('node_modules/@codemirror/view')) {
+            return 'vendor-cm-core';
+          }
+
+          // CodeMirror 语言支持
+          if (id.includes('node_modules/@codemirror/lang-')) {
+            return 'vendor-cm-langs';
+          }
+
+          // CodeMirror 其他模块
+          if (id.includes('node_modules/@codemirror/')) {
+            return 'vendor-cm-ext';
+          }
+
+          // Lezer 解析器
+          if (id.includes('node_modules/@lezer/')) {
+            return 'vendor-lezer';
+          }
+
+          // MDXEditor 编辑器
+          if (id.includes('node_modules/@mdxeditor/')) {
+            return 'vendor-mdxeditor';
+          }
+
+          // Radix UI 组件库
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'vendor-radix';
+          }
+
+          // Headless UI
+          if (id.includes('node_modules/@headlessui/')) {
+            return 'vendor-headless';
+          }
 
           // 图标库
-          'vendor-icons': ['lucide-react', 'react-icons'],
-
-          // 工具库
-          'vendor-utils': [
-            'clsx',
-            'tailwind-merge',
-            'class-variance-authority',
-            'date-fns',
-            'zod',
-            '@hookform/resolvers',
-          ],
+          if (id.includes('node_modules/lucide-react/') ||
+              id.includes('node_modules/react-icons/')) {
+            return 'vendor-icons';
+          }
 
           // 国际化
-          'vendor-i18n': ['i18next', 'react-i18next'],
+          if (id.includes('node_modules/i18next') ||
+              id.includes('node_modules/react-i18next/')) {
+            return 'vendor-i18n';
+          }
+
+          // 动画库
+          if (id.includes('node_modules/motion/') ||
+              id.includes('node_modules/framer-motion/')) {
+            return 'vendor-motion';
+          }
+
+          // 状态管理
+          if (id.includes('node_modules/zustand/')) {
+            return 'vendor-state';
+          }
+
+          // 工具库
+          if (id.includes('node_modules/clsx/') ||
+              id.includes('node_modules/tailwind-merge/') ||
+              id.includes('node_modules/class-variance-authority/') ||
+              id.includes('node_modules/date-fns/') ||
+              id.includes('node_modules/zod/')) {
+            return 'vendor-utils';
+          }
+
+          // remark/unified markdown 处理
+          if (id.includes('node_modules/remark-') ||
+              id.includes('node_modules/unified') ||
+              id.includes('node_modules/mdast-') ||
+              id.includes('node_modules/micromark') ||
+              id.includes('node_modules/unist-')) {
+            return 'vendor-markdown';
+          }
+
+          // KaTeX 数学公式
+          if (id.includes('node_modules/katex/')) {
+            return 'vendor-katex';
+          }
         },
         // 为每个 chunk 生成更短的文件名
         chunkFileNames: 'assets/[name]-[hash].js',

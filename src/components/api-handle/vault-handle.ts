@@ -1,5 +1,5 @@
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
 import { addCacheBuster } from "@/lib/utils/cache-buster";
+import { toast } from "@/components/common/Toast";
 import { getBrowserLang } from "@/lib/i18n/utils";
 import { VaultType } from "@/lib/types/vault";
 import { useCallback, useMemo } from "react";
@@ -7,7 +7,6 @@ import env from "@/env.ts";
 
 
 export function useVaultHandle() {
-  const { openConfirmDialog } = useConfirmDialog()
   const token = localStorage.getItem("token")!
 
   const handleVaultList = useCallback(async (callback: (key: VaultType[]) => void) => {
@@ -50,9 +49,9 @@ export function useVaultHandle() {
     }
     const res = await response.json()
     if (res.code > 100) {
-      openConfirmDialog(res.message + ": " + res.details, "error")
+      toast.error(res.message + ": " + res.details)
     }
-  }, [token, openConfirmDialog])
+  }, [token])
 
   const handleVaultUpdate = useCallback(async (data: Partial<VaultType>, callback: (data2: VaultType) => void) => {
     const response = await fetch(addCacheBuster(env.API_URL + "/api/vault"), {
@@ -70,12 +69,12 @@ export function useVaultHandle() {
     }
     const res = await response.json()
     if (res.code < 100 && res.code > 0) {
-      openConfirmDialog(res.message, "success")
+      toast.success(res.message)
       callback(res.data)
     } else {
-      openConfirmDialog(res.message + ": " + res.details, "error")
+      toast.error(res.message + ": " + res.details)
     }
-  }, [token, openConfirmDialog])
+  }, [token])
 
   return useMemo(() => ({
     handleVaultList,

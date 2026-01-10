@@ -1,4 +1,4 @@
-import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
+import { toast } from "@/components/common/Toast";
 import { addCacheBuster } from "@/lib/utils/cache-buster";
 import type { ChangePassword } from "@/lib/types/user";
 import { getBrowserLang } from "@/lib/i18n/utils";
@@ -9,7 +9,6 @@ import env from "@/env.ts";
 
 export function useUserHandle() {
   const { t } = useTranslation()
-  const { openConfirmDialog } = useConfirmDialog() // 使用 useContext 来获取上下文值
   const token = localStorage.getItem("token")!
 
 
@@ -33,14 +32,14 @@ export function useUserHandle() {
       const res = await response.json()
       // 只有 请求成功 且接口里 的 data 不存在的时候 才清理用户信息
       if (!res.data) {
-        openConfirmDialog(t("sessionExpired"), "error")
+        toast.error(t("sessionExpired"))
         logout()
       }
     } catch (e) {
       console.error("Failed to fetch user info (network error):", e)
       // 请求失败时不清理本地存储
     }
-  }, [token, openConfirmDialog, t])
+  }, [token, t])
 
 
   const handleUserChangePassword = useCallback(async (data: ChangePassword, callback: (data2: ChangePassword) => void) => {
@@ -62,13 +61,13 @@ export function useUserHandle() {
     }
     const res = await response.json()
     if (res.code < 100 && res.code > 0) {
-      openConfirmDialog(res.message, "success")
+      toast.success(res.message)
 
       callback(data)
     } else {
-      openConfirmDialog(res.message + ": " + res.details, "error")
+      toast.error(res.message + ": " + res.details)
     }
-  }, [token, openConfirmDialog])
+  }, [token])
 
 
   return useMemo(() => ({

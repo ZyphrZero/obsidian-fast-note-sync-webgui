@@ -1,9 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVaultHandle } from "@/components/api-handle/vault-handle";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { VaultType } from "@/lib/types/vault";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Note } from "@/lib/types/note";
 import { Database } from "lucide-react";
 
@@ -13,7 +12,7 @@ import { NoteList } from "./note-list";
 
 
 interface NoteManagerProps {
-    vault?: string;
+    vault: string;
     onVaultChange?: (vault: string) => void;
     onNavigateToVaults?: () => void;
     isMaximized?: boolean;
@@ -22,7 +21,7 @@ interface NoteManagerProps {
 }
 
 export function NoteManager({
-    vault = "defaultVault",
+    vault,
     onVaultChange,
     onNavigateToVaults,
     isMaximized = false,
@@ -31,11 +30,11 @@ export function NoteManager({
 }: NoteManagerProps) {
     const { t } = useTranslation();
     const [view, setView] = useState<"list" | "editor">("list");
-    const [mode, setMode] = useState<"view" | "edit">("view");
     const [selectedNote, setSelectedNote] = useState<Note | undefined>(undefined);
     const [vaults, setVaults] = useState<VaultType[]>([]);
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedNoteForHistory, setSelectedNoteForHistory] = useState<Note | null>(null);
+    const vaultsLoaded = useRef(false);
 
     // Lifted state for pagination
     const [page, setPage] = useState(1);
@@ -54,6 +53,7 @@ export function NoteManager({
     useEffect(() => {
         handleVaultList((data) => {
             setVaults(data);
+            vaultsLoaded.current = true;
         });
     }, [handleVaultList]);
 
@@ -62,45 +62,36 @@ export function NoteManager({
         setPage(1);
     }, [vault]);
 
-    const handleSelectNote = (note: Note, mode: "view" | "edit") => {
+    const handleSelectNote = (note: Note) => {
         setSelectedNote(note);
-        setMode(isRecycle ? "view" : mode);
         setView("editor");
     };
 
     const handleCreateNote = () => {
         setSelectedNote(undefined);
-        setMode("edit");
         setView("editor");
     };
 
     const handleBack = () => {
-        if (mode === "edit" && selectedNote) {
-            setMode("view");
-        } else {
-            setView("list");
-            setSelectedNote(undefined);
-        }
+        setView("list");
+        setSelectedNote(undefined);
     };
 
     const handleSaveSuccess = (newPath: string, newPathHash: string) => {
-        setMode("view");
-        // 如果是新创建的笔记，由于 selectedNote 可能还是 undefined
-        // 这里需要 fetchNote 或者根据 fullPath 重新选中
-        if (selectedNote) {
+        // 只有新建笔记时才更新 selectedNote
+        // 已有笔记保存时不更新，避免触发重新加载
+        if (!selectedNote) {
+            // 新建笔记保存成功后，创建一个临时的 note 对象
             setSelectedNote({
-                ...selectedNote,
+                id: Date.now(), // 临时 id
                 path: newPath,
-                pathHash: newPathHash
-            });
-        } else {
-            // 新建笔记保存成功后回列表
-            setView("list");
+                pathHash: newPathHash,
+                mtime: Date.now(),
+                ctime: Date.now(),
+                version: 0,
+            } as Note);
         }
-    };
-
-    const handleEdit = () => {
-        setMode("edit");
+        // 已有笔记保存时，不更新 selectedNote，保持编辑器状态
     };
 
     const handleViewHistory = (note: Note) => {
@@ -108,32 +99,28 @@ export function NoteManager({
         setHistoryModalOpen(true);
     };
 
-    // 检查是否有仓库
-    if (vaults.length === 0) {
+    // 检查是否有仓库（只在加载完成后显示空状态）
+    if (vaultsLoaded.current && vaults.length === 0) {
         return (
-            <Card className="w-full">
-                <CardHeader>
-                    <CardTitle className="text-xl font-bold">{t("menuNotes")}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Database className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                        {t("noVaultsForNotes")}
-                    </h3>
-                    <p className="text-gray-500 mb-6 text-center">
-                        {t("createVaultFirst")}
-                    </p>
-                    <Button
-                        onClick={() => {
-                            if (onNavigateToVaults) {
-                                onNavigateToVaults();
-                            }
-                        }}
-                    >
-                        {t("goToVaultManagement")}
-                    </Button>
-                </CardContent>
-            </Card>
+            <div className="rounded-3xl border border-border bg-card p-12 flex flex-col items-center justify-center">
+                <Database className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                    {t("noVaultsForNotes")}
+                </h3>
+                <p className="text-muted-foreground mb-6 text-center">
+                    {t("createVaultFirst")}
+                </p>
+                <Button
+                    onClick={() => {
+                        if (onNavigateToVaults) {
+                            onNavigateToVaults();
+                        }
+                    }}
+                    className="rounded-xl"
+                >
+                    {t("goToVaultManagement")}
+                </Button>
+            </div>
         );
     }
 
@@ -143,10 +130,8 @@ export function NoteManager({
             <NoteEditor
                 vault={vault}
                 note={selectedNote}
-                mode={mode}
                 onBack={handleBack}
                 onSaveSuccess={handleSaveSuccess}
-                onEdit={handleEdit}
                 onViewHistory={() => selectedNote && handleViewHistory(selectedNote)}
                 isMaximized={isMaximized}
                 onToggleMaximize={onToggleMaximize}

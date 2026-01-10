@@ -227,66 +227,97 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash, i
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+            <DialogContent className="max-w-4xl w-[95vw] sm:w-auto max-h-[85vh] sm:max-h-[90vh] flex flex-col p-4 sm:p-6 rounded-2xl sm:rounded-3xl">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 font-normal overflow-hidden">
+                    <DialogTitle className="flex items-center gap-2 font-normal overflow-hidden text-sm sm:text-base">
                         <History className="h-4 w-4 shrink-0 text-muted-foreground opacity-70" />
-                        <span className="shrink-0 text-muted-foreground">{t("noteHistory")}:</span>
+                        <span className="hidden sm:inline shrink-0 text-muted-foreground">{t("noteHistory")}:</span>
                         <span className="truncate text-foreground font-medium">{String(notePath || "").replace(/\.md$/, "")}</span>
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-auto py-4 custom-scrollbar">
-                    <div className="space-y-6">
-                        {/* 列表部分 */}
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[80px]">{t("historyVersion")}</TableHead>
-                                        <TableHead>{t("clientSource")}</TableHead>
-                                        <TableHead>{t("updatedAt")}</TableHead>
-                                        <TableHead className="text-right pr-7">{t("viewDetail")}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
+                <div className="flex-1 overflow-auto py-2 sm:py-4 custom-scrollbar">
+                    <div className="space-y-4 sm:space-y-6">
+                        {/* 列表部分 - 移动端使用卡片布局 */}
+                        <div className="border rounded-md overflow-hidden">
+                            {/* 桌面端表格 */}
+                            <div className="hidden sm:block">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t("loadingHistory")}</TableCell>
+                                            <TableHead className="w-[80px]">{t("historyVersion")}</TableHead>
+                                            <TableHead>{t("clientSource")}</TableHead>
+                                            <TableHead>{t("updatedAt")}</TableHead>
+                                            <TableHead className="text-right pr-7">{t("viewDetail")}</TableHead>
                                         </TableRow>
-                                    ) : !Array.isArray(historyList) || Array.isArray(historyList) && historyList.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t("noHistory")}</TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        historyList.filter(item => item !== null).map((item) => (
-                                            <TableRow key={item.id} className={`hover:bg-muted/50 transition-colors ${selectedHistory?.id === item.id ? "bg-blue-50" : ""}`}>
-                                                <TableCell className="font-mono">v{item.version}</TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{item.clientName || "Unknown"}</span>
-                                                        {renderClientIcon(item.clientName)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {item.createdAt ? format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss") : "-"}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="sm" onClick={() => handleViewDetail(item.id)}>
-                                                        {t("view")}
-                                                    </Button>
-                                                </TableCell>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t("loadingHistory")}</TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        ) : !Array.isArray(historyList) || Array.isArray(historyList) && historyList.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{t("noHistory")}</TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            historyList.filter(item => item !== null).map((item) => (
+                                                <TableRow key={item.id} className={`hover:bg-muted/50 transition-colors ${selectedHistory?.id === item.id ? "bg-blue-50" : ""}`}>
+                                                    <TableCell className="font-mono">v{item.version}</TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        <div className="flex items-center gap-2">
+                                                            <span>{item.clientName || "Unknown"}</span>
+                                                            {renderClientIcon(item.clientName)}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {item.createdAt ? format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss") : "-"}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button variant="ghost" size="sm" onClick={() => handleViewDetail(item.id)}>
+                                                            {t("view")}
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            
+                            {/* 移动端卡片列表 */}
+                            <div className="sm:hidden divide-y">
+                                {loading ? (
+                                    <div className="text-center py-8 text-muted-foreground">{t("loadingHistory")}</div>
+                                ) : !Array.isArray(historyList) || historyList.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">{t("noHistory")}</div>
+                                ) : (
+                                    historyList.filter(item => item !== null).map((item) => (
+                                        <div 
+                                            key={item.id} 
+                                            className={`p-3 ${selectedHistory?.id === item.id ? "bg-blue-50" : ""}`}
+                                            onClick={() => handleViewDetail(item.id)}
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="font-mono font-medium">v{item.version}</span>
+                                                <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                                                    {renderClientIcon(item.clientName)}
+                                                    <span>{item.clientName || "Unknown"}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {item.createdAt ? format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss") : "-"}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
                         {/* 分页 */}
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-between px-2">
-                                <p className="text-sm text-muted-foreground">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-2">
+                                <p className="text-xs sm:text-sm text-muted-foreground">
                                     {t("historyCount", { count: totalRows })}
                                 </p>
                                 <div className="flex items-center space-x-2">
@@ -295,21 +326,23 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash, i
                                         size="sm"
                                         onClick={() => setPage(p => Math.max(1, p - 1))}
                                         disabled={page === 1 || loading}
+                                        className="h-8 px-2 sm:px-3"
                                     >
-                                        <ChevronLeft className="h-4 w-4 mr-1" />
-                                        {t("previous")}
+                                        <ChevronLeft className="h-4 w-4" />
+                                        <span className="hidden sm:inline ml-1">{t("previous")}</span>
                                     </Button>
-                                    <span className="text-sm font-medium">
-                                        {t("page")} {page} / {totalPages} {String(t("next") || "").includes("下一页") ? "页" : ""}
+                                    <span className="text-xs sm:text-sm font-medium">
+                                        {page} / {totalPages}
                                     </span>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                         disabled={page === totalPages || loading}
+                                        className="h-8 px-2 sm:px-3"
                                     >
-                                        {t("next")}
-                                        <ChevronRight className="h-4 w-4 ml-1" />
+                                        <span className="hidden sm:inline mr-1">{t("next")}</span>
+                                        <ChevronRight className="h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>
@@ -317,9 +350,9 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash, i
 
                         {/* 详情部分 */}
                         {selectedHistory && (
-                            <div className="mt-6 border-t pt-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-semibold flex items-baseline gap-2">
+                            <div className="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                    <h3 className="text-base sm:text-lg font-semibold flex items-baseline gap-2">
                                         <FileText className="h-4 w-4 self-center" />
                                         <span>{t("diffDetails", { version: selectedHistory.version })}</span>
                                         <div className="flex items-baseline gap-2 ml-2 text-[10px] font-normal uppercase tracking-wider">
@@ -331,8 +364,8 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash, i
                                             </span>
                                         </div>
                                     </h3>
-                                    <div className="flex items-center">
-                                        <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="flex items-center space-x-2 bg-slate-100 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
                                             <Checkbox
                                                 id="showDiffOnly"
                                                 checked={showDiffOnly}
@@ -344,12 +377,12 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash, i
                                             />
                                             <Label
                                                 htmlFor="showDiffOnly"
-                                                className="text-sm font-medium leading-none cursor-pointer text-slate-700"
+                                                className="text-xs sm:text-sm font-medium leading-none cursor-pointer text-slate-700"
                                             >
                                                 {t("showDiffOnly")}
                                             </Label>
                                         </div>
-                                        <div className="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm ml-3">
+                                        <div className="flex items-center space-x-2 bg-slate-100 px-2 sm:px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
                                             <Checkbox
                                                 id="showOriginalContent"
                                                 checked={showOriginal}
@@ -361,7 +394,7 @@ export function NoteHistoryModal({ isOpen, onClose, vault, notePath, pathHash, i
                                             />
                                             <Label
                                                 htmlFor="showOriginalContent"
-                                                className="text-sm font-medium leading-none cursor-pointer text-slate-700"
+                                                className="text-xs sm:text-sm font-medium leading-none cursor-pointer text-slate-700"
                                             >
                                                 {t("showOriginalContent")}
                                             </Label>
