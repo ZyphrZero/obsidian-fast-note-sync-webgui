@@ -50,6 +50,7 @@ interface SystemConfig {
     fileChunkSize: string
     softDeleteRetentionTime: string
     uploadSessionTimeout: string
+    historyKeepVersions: number
     adminUid: number
 }
 
@@ -77,6 +78,10 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
     // adminUid 单独管理（手动保存）
     const [adminUidInput, setAdminUidInput] = useState("")
     const [savingAdminUid, setSavingAdminUid] = useState(false)
+
+    // historyKeepVersions 单独管理（手动保存）
+    const [historyKeepVersionsInput, setHistoryKeepVersionsInput] = useState("")
+    const [savingHistoryKeepVersions, setSavingHistoryKeepVersions] = useState(false)
 
     // 检查更新
     const handleCheckUpdate = async () => {
@@ -161,6 +166,7 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
                 if (res.code === 0 || (res.code < 100 && res.code > 0)) {
                     setConfig(res.data)
                     setAdminUidInput(String(res.data.adminUid))
+                    setHistoryKeepVersionsInput(String(res.data.historyKeepVersions))
                 } else {
                     toast.error(res.message || t("error"))
                     onBack?.()
@@ -243,6 +249,40 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
             toast.error(t("saveFailed"))
         } finally {
             setSavingAdminUid(false)
+        }
+    }
+
+    // 手动保存 historyKeepVersions
+    const handleSaveHistoryKeepVersions = async () => {
+        if (!config) return
+        const versionValue = parseInt(historyKeepVersionsInput)
+        if (isNaN(versionValue) || versionValue < 100) {
+            toast.error(t("historyKeepVersionsMinError") || "历史记录保留版本数不能小于 100")
+            return
+        }
+        setSavingHistoryKeepVersions(true)
+        try {
+            const newConfig = { ...config, historyKeepVersions: versionValue }
+            const response = await fetch(addCacheBuster(env.API_URL + "/api/admin/config"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Token: token || "",
+                    Lang: getBrowserLang(),
+                },
+                body: JSON.stringify(newConfig),
+            })
+            const res = await response.json()
+            if (res.code === 0 || (res.code < 100 && res.code > 0)) {
+                toast.success(t("saveSuccess") || "保存成功")
+                setConfig(newConfig)
+            } else {
+                toast.error(res.message || t("saveFailed"))
+            }
+        } catch {
+            toast.error(t("saveFailed"))
+        } finally {
+            setSavingHistoryKeepVersions(false)
         }
     }
 
@@ -520,6 +560,31 @@ export function SystemSettings({ onBack }: { onBack?: () => void }) {
                             className="rounded-xl"
                         />
                         <p className="text-xs text-muted-foreground">{t("uploadSessionTimeoutDesc")}</p>
+                    </div>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <GitBranch className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t("historyKeepVersions")}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <Input
+                                type="number"
+                                min="100"
+                                value={historyKeepVersionsInput}
+                                onChange={(e) => setHistoryKeepVersionsInput(e.target.value)}
+                                placeholder="e.g. 100"
+                                className="rounded-xl flex-1"
+                            />
+                            <Button 
+                                onClick={handleSaveHistoryKeepVersions} 
+                                disabled={savingHistoryKeepVersions}
+                                className="rounded-xl"
+                            >
+                                {savingHistoryKeepVersions ? t("submitting") : t("save")}
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t("historyKeepVersionsDesc")}</p>
                     </div>
                 </div>
             </div>
