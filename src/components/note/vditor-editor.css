@@ -1,0 +1,94 @@
+.vditor-container {
+    width: 100%;
+    height: 100%;
+}
+
+.vditor-container .vditor {
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.vditor-container .vditor-toolbar {
+    border-bottom: 1px solid var(--border) !important;
+    padding: 4px 8px !important;
+}
+
+.vditor-container .vditor-content {
+    padding: 16px !important;
+}
+
+/* 字数统计样式 */
+.vditor-container .vditor-counter {
+    padding: 4px 12px;
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+    border-top: 1px solid hsl(var(--border));
+}
+
+/* 大纲样式 */
+.vditor-container .vditor-outline {
+    border-left: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+}
+
+.vditor-container .vditor-outline__content {
+    padding: 8px;
+}
+
+.vditor-container .vditor-outline__item {
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.vditor-container .vditor-outline__item:hover {
+    background-color: hsl(var(--accent));
+}
+
+/* 暗色主题适配 */
+.dark .vditor-container .vditor {
+    background-color: hsl(var(--card)) !important;
+}
+
+.dark .vditor-container .vditor-toolbar {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+}
+
+.dark .vditor-container .vditor-ir {
+    background-color: hsl(var(--card)) !important;
+}
+
+.dark .vditor-container .vditor-sv {
+    background-color: hsl(var(--card)) !important;
+}
+
+.dark .vditor-container .vditor-wysiwyg {
+    background-color: hsl(var(--card)) !important;
+}
+
+.dark .vditor-container .vditor-outline {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+}
+
+.dark .vditor-container .vditor-counter {
+    border-color: hsl(var(--border)) !important;
+}
+
+/* 修复 tooltip 被遮挡问题 */
+.vditor-container .vditor-toolbar {
+    overflow: visible !important;
+}
+
+.vditor-container .vditor-hint,
+.vditor-container .vditor-tip {
+    z-index: 9999 !important;
+}
+
+/* 工具栏下拉菜单 */
+.vditor-container .vditor-toolbar .vditor-panel--arrow,
+.vditor-container .vditor-toolbar .vditor-hint {
+    z-index: 9999 !important;
+}

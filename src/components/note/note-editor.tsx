@@ -1,5 +1,5 @@
 import { ArrowLeft, Folder, History, RefreshCcw, Check, X, Cloud, Fullscreen, Shrink } from "lucide-react";
-import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
 import { toast } from "@/components/common/Toast";
 import { Note, NoteDetail } from "@/lib/types/note";
@@ -9,11 +9,10 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { hashCode } from "@/lib/utils/hash";
 import { format } from "date-fns";
-import env from "@/env.ts";
-import type { MarkdownEditorRef } from "./mdx-editor";
+import type { VditorEditorRef } from "./vditor-editor";
 
 // 懒加载编辑器组件
-const MarkdownEditor = lazy(() => import("./mdx-editor").then(m => ({ default: m.MarkdownEditor })));
+const VditorEditor = lazy(() => import("./vditor-editor").then(m => ({ default: m.VditorEditor })));
 
 // 编辑器加载占位符
 const EditorLoading = () => (
@@ -37,6 +36,7 @@ interface NoteEditorProps {
     isMaximized?: boolean;
     onToggleMaximize?: () => void;
     isRecycle?: boolean;
+    initialPreviewMode?: boolean;
 }
 
 export function NoteEditor({
@@ -47,14 +47,15 @@ export function NoteEditor({
     onViewHistory,
     isMaximized: _isMaximized = false,
     onToggleMaximize: _onToggleMaximize,
-    isRecycle = false
+    isRecycle = false,
+    initialPreviewMode = false
 }: NoteEditorProps) {
     // 保留 isMaximized 和 onToggleMaximize 用于未来最大化功能
     void _isMaximized;
     void _onToggleMaximize;
     const { t } = useTranslation();
     const { handleGetNote, handleSaveNote } = useNoteHandle();
-    const editorRef = useRef<MarkdownEditorRef>(null);
+    const editorRef = useRef<VditorEditorRef>(null);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -142,38 +143,7 @@ export function NoteEditor({
         };
     }, []);
 
-    const processedContent = useMemo(() => {
-        if (!content) return content;
 
-        const token = localStorage.getItem("token") || "";
-        const fileLinks = originalNote?.fileLinks || {};
-
-        return content.replace(/(!)?\[\[([^\]]+)\]\]/g, (_, isEmbed, inner) => {
-            const parts = inner.split('|');
-            const rawPath = parts[0].split('#')[0];
-            const resolvedPath = fileLinks[rawPath] || rawPath;
-            const alias = parts[1] || rawPath;
-            const options = parts.slice(1);
-
-            if (isEmbed) {
-                const apiUrl = `${env.API_URL}/api/note/file?vault=${encodeURIComponent(vault)}&path=${encodeURIComponent(resolvedPath)}&token=${encodeURIComponent(token)}`;
-                const lowerPath = resolvedPath.toLowerCase();
-                const isImage = /\.(png|jpg|jpeg|gif|svg|webp)$/.test(lowerPath);
-
-                if (isImage) {
-                    let width = "";
-                    if (options[0]) {
-                        const sizeMatch = options[0].match(/^(\d+)/);
-                        if (sizeMatch) width = sizeMatch[1];
-                    }
-                    return width ? `![${rawPath}](${apiUrl} =${width}x)` : `![${rawPath}](${apiUrl})`;
-                }
-                return `[${rawPath}](${apiUrl})`;
-            } else {
-                return `[${alias}](${resolvedPath})`;
-            }
-        });
-    }, [content, vault, originalNote]);
 
     // 执行保存操作
     const doSave = useCallback((currentPath: string, currentContent: string, silent: boolean = false) => {
@@ -375,9 +345,19 @@ export function NoteEditor({
                     )}
                     <span className="font-bold truncate">{filename}</span>
                 </div>
-                {/* 保存状态和更新时间显示 */}
+                {/* 保存状态、版本号和更新时间显示 */}
                 {!isRecycle && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                        {/* 版本号显示 */}
+                        {originalNote?.version !== undefined && originalNote.version > 0 && (
+                            <Tooltip content={t("historyVersion")} side="bottom" delay={200}>
+                                <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-muted/50 text-muted-foreground hover:bg-muted cursor-default">
+                                    <History className="h-3 w-3" />
+                                    <span>v{originalNote.version}</span>
+                                </span>
+                            </Tooltip>
+                        )}
+                        {/* 保存状态 */}
                         {saving ? (
                             <>
                                 <Cloud className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-pulse" />
@@ -456,20 +436,23 @@ export function NoteEditor({
             </div>
 
             {/* 编辑器区域 */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0">
                 {loading ? (
                     <div className="flex items-center justify-center h-full rounded-xl border border-border bg-card">
                         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
                     </div>
                 ) : (
-                    <div className="h-full overflow-auto rounded-xl border border-border bg-card">
+                    <div className="h-full overflow-visible rounded-xl border border-border bg-card">
                         <Suspense fallback={<EditorLoading />}>
-                            <MarkdownEditor
+                            <VditorEditor
                                 ref={editorRef}
-                                value={processedContent}
+                                value={content}
                                 onChange={handleContentChange}
                                 readOnly={isRecycle}
                                 placeholder={t("noteContentPlaceholder")}
+                                vault={vault}
+                                fileLinks={originalNote?.fileLinks}
+                                initialMode={initialPreviewMode ? "preview" : "sv"}
                             />
                         </Suspense>
                     </div>

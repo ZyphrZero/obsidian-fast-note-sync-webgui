@@ -31,6 +31,7 @@ export function NoteManager({
     const { t } = useTranslation();
     const [view, setView] = useState<"list" | "editor">("list");
     const [selectedNote, setSelectedNote] = useState<Note | undefined>(undefined);
+    const [initialPreviewMode, setInitialPreviewMode] = useState(false);
     const [vaults, setVaults] = useState<VaultType[]>([]);
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedNoteForHistory, setSelectedNoteForHistory] = useState<Note | null>(null);
@@ -62,13 +63,15 @@ export function NoteManager({
         setPage(1);
     }, [vault]);
 
-    const handleSelectNote = (note: Note) => {
+    const handleSelectNote = (note: Note, previewMode: boolean = false) => {
         setSelectedNote(note);
+        setInitialPreviewMode(previewMode);
         setView("editor");
     };
 
     const handleCreateNote = () => {
         setSelectedNote(undefined);
+        setInitialPreviewMode(false);
         setView("editor");
     };
 
@@ -97,6 +100,15 @@ export function NoteManager({
     const handleViewHistory = (note: Note) => {
         setSelectedNoteForHistory(note);
         setHistoryModalOpen(true);
+    };
+
+    // 历史版本恢复成功后的回调
+    const handleHistoryRestoreSuccess = () => {
+        // 如果当前正在编辑被恢复的笔记，需要刷新编辑器
+        if (selectedNote && selectedNoteForHistory && selectedNote.pathHash === selectedNoteForHistory.pathHash) {
+            // 通过重新设置 selectedNote 触发编辑器重新加载
+            setSelectedNote({ ...selectedNote, version: (selectedNote.version || 0) + 1 });
+        }
     };
 
     // 检查是否有仓库（只在加载完成后显示空状态）
@@ -136,6 +148,7 @@ export function NoteManager({
                 isMaximized={isMaximized}
                 onToggleMaximize={onToggleMaximize}
                 isRecycle={isRecycle}
+                initialPreviewMode={initialPreviewMode}
             />
         );
     } else {
@@ -172,6 +185,7 @@ export function NoteManager({
                     notePath={selectedNoteForHistory.path}
                     pathHash={selectedNoteForHistory.pathHash}
                     isRecycle={isRecycle}
+                    onRestoreSuccess={handleHistoryRestoreSuccess}
                 />
             )}
         </>

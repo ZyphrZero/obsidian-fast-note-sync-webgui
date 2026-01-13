@@ -18,8 +18,8 @@ export function useUserHandle() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
           Domain: window.location.origin,
-          Token: token,
           Lang: getBrowserLang(),
         },
       })
@@ -51,8 +51,8 @@ export function useUserHandle() {
       body: JSON.stringify(formData),
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
         Domain: window.location.origin,
-        Token: token,
         Lang: getBrowserLang(),
       },
     })

@@ -34,7 +34,7 @@ export function ChangePassword({ close }: { close: () => void }) {
       const response = await fetch(addCacheBuster(env.API_URL + "/api/user/change_password"), {
         method: "POST",
         headers: {
-          token: token || "",
+          "Authorization": `Bearer ${token}`,
         },
         body: formData,
       })

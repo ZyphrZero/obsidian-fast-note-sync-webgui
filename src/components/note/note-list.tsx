@@ -1,4 +1,4 @@
-import { FileText, Trash2, RefreshCw, Plus, Calendar, Clock, ChevronLeft, ChevronRight, History, Search, X, Regex, FileSearch, ArrowUpDown, RotateCcw } from "lucide-react";
+import { FileText, Trash2, RefreshCw, Plus, Calendar, Clock, ChevronLeft, ChevronRight, History, Search, X, Regex, FileSearch, ArrowUpDown, RotateCcw, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirmDialog } from "@/components/context/confirm-dialog-context";
 import { useNoteHandle } from "@/components/api-handle/note-handle";
@@ -19,7 +19,7 @@ interface NoteListProps {
     vault: string;
     vaults?: VaultType[];
     onVaultChange?: (vault: string) => void;
-    onSelectNote: (note: Note) => void;
+    onSelectNote: (note: Note, previewMode?: boolean) => void;
     onCreateNote: () => void;
     page: number;
     setPage: (page: number) => void;
@@ -311,6 +311,19 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
 
                                     {/* 右侧：操作按钮 */}
                                     <div className="flex items-center gap-1 shrink-0">
+                                        <Tooltip content={t("viewNote")} side="top" delay={200}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 rounded-xl text-muted-foreground hover:text-primary"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSelectNote(note, true);
+                                                }}
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </Tooltip>
                                         <Tooltip content={t("history") || "历史记录"} side="top" delay={200}>
                                             <Button
                                                 variant="ghost"

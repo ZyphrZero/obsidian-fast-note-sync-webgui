@@ -14,8 +14,8 @@ export function useVaultHandle() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
         Domain: window.location.origin,
-        Token: token,
         Lang: getBrowserLang(),
       },
     })
@@ -39,8 +39,8 @@ export function useVaultHandle() {
       body: JSON.stringify(data),
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
         Domain: window.location.origin,
-        Token: token,
         Lang: getBrowserLang(),
       },
     })
@@ -59,8 +59,8 @@ export function useVaultHandle() {
       body: JSON.stringify(data),
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
         Domain: window.location.origin,
-        Token: token,
         Lang: getBrowserLang(),
       },
     })
