@@ -234,6 +234,7 @@ export default {
     colorScheme: "配色方案",
     colorSchemeSwitched: "已切换到 {{scheme}} 配色",
     "colorScheme.green": "绿色",
+    "colorScheme.blue": "蓝色",
     "colorScheme.skyBlue": "天蓝",
     "colorScheme.purple": "紫色",
     "colorScheme.orange": "橙色",

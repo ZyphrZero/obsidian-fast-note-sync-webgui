@@ -196,21 +196,21 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                         {/* 搜索模式切换 */}
                         <div className="flex items-center h-8 rounded-xl border border-border overflow-hidden">
                             <button
-                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors ${searchMode === "path" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors ${searchMode === "path" ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
                                 onClick={() => setSearchMode("path")}
                             >
                                 <Search className="h-3.5 w-3.5" />
                                 {t("searchPath")}
                             </button>
                             <button
-                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${searchMode === "content" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${searchMode === "content" ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
                                 onClick={() => setSearchMode("content")}
                             >
                                 <FileSearch className="h-3.5 w-3.5" />
                                 {t("searchContentMode")}
                             </button>
                             <button
-                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${searchMode === "regex" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${searchMode === "regex" ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
                                 onClick={() => setSearchMode("regex")}
                             >
                                 <Regex className="h-3.5 w-3.5" />
@@ -220,21 +220,21 @@ export function NoteList({ vault, vaults, onVaultChange, onSelectNote, onCreateN
                         {/* 排序选择 */}
                         <div className="flex items-center h-8 rounded-xl border border-border overflow-hidden">
                             <button
-                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors ${sortBy === "mtime" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors ${sortBy === "mtime" ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
                                 onClick={() => setSortBy("mtime")}
                             >
                                 <Clock className="h-3.5 w-3.5" />
                                 {t("sortByMtime")}
                             </button>
                             <button
-                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${sortBy === "ctime" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${sortBy === "ctime" ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
                                 onClick={() => setSortBy("ctime")}
                             >
                                 <Calendar className="h-3.5 w-3.5" />
                                 {t("sortByCtime")}
                             </button>
                             <button
-                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${sortBy === "path" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                                className={`px-3 h-full text-xs flex items-center gap-1.5 transition-colors border-l border-border ${sortBy === "path" ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
                                 onClick={() => setSortBy("path")}
                             >
                                 <FileText className="h-3.5 w-3.5" />

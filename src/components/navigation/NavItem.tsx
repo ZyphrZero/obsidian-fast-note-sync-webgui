@@ -1,9 +1,10 @@
-import { cn } from "@/lib/utils"
-import { motion } from "motion/react"
-import type { LucideIcon } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
-import { createPortal } from "react-dom"
-import { useMobile } from "@/hooks/use-mobile"
+import { useState, useRef, useEffect } from "react";
+import type { LucideIcon } from "lucide-react";
+import { useMobile } from "@/hooks/use-mobile";
+import { createPortal } from "react-dom";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
+
 
 interface NavItemProps {
   /** 图标组件 */
@@ -24,7 +25,7 @@ interface NavItemProps {
 
 /**
  * NavItem - 导航项组件
- * 
+ *
  * 极简设计的图标按钮，支持：
  * - 激活状态样式
  * - 悬停 tooltip（仅桌面端）
@@ -67,7 +68,7 @@ export function NavItem({
   const handleMouseEnter = () => {
     // 移动端不显示 tooltip
     if (isMobile) return
-    
+
     timerRef.current = window.setTimeout(() => {
       setShowTooltip(true)
     }, tooltipDelay)
@@ -101,8 +102,8 @@ export function NavItem({
       style={{
         top: tooltipPosition.top,
         left: tooltipPosition.left,
-        transform: tooltipSide === "top" 
-          ? "translate(-50%, -100%)" 
+        transform: tooltipSide === "top"
+          ? "translate(-50%, -100%)"
           : "translateY(-50%)",
       }}
       role="tooltip"
@@ -122,7 +123,7 @@ export function NavItem({
           "relative p-3 rounded-xl transition-colors duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           isActive
-            ? "bg-primary/10 text-primary"
+            ? "bg-accent text-accent-foreground"
             : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
         )}
         whileTap={{ scale: 0.95 }}
@@ -132,7 +133,7 @@ export function NavItem({
       >
         <Icon className="size-5" strokeWidth={2} />
         {isPlanned && (
-          <span className="absolute -top-1 -right-1 size-2 bg-primary rounded-full" />
+          <span className="absolute -top-1 -right-1 size-2 bg-ring rounded-full" />
         )}
       </motion.button>
 

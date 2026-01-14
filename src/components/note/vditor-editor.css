@@ -149,11 +149,35 @@
 .vditor-reset code:hover {
   scrollbar-color: rgba(128, 128, 128, 0.3) transparent !important;
 }
+.vditor-sv {
+  border-right: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+}
 
 /* 移除预览模式左侧边框 */
 .vditor-preview {
-  border-left: none !important;
-  margin-left: 0 !important;
+  margin-left: 0px !important;
+  padding-left: 10px !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* 编辑器表格样式增强 */
+.vditor-reset table {
+  border-collapse: collapse !important;
+  width: 100%;
+}
+
+.vditor-reset table td,
+.vditor-reset table th {
+  border: 1px solid var(--border) !important;
+  padding: 6px 13px !important;
+}
+
+.vditor-reset table tr {
+  background-color: transparent;
+  border-top: 1px solid var(--border) !important;
 }
 
 /* 修复全屏模式下被顶部导航条遮挡的问题 */

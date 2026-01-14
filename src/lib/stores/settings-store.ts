@@ -1,16 +1,18 @@
-import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { create } from 'zustand';
 
-export type ToastPosition = 
-  | 'top-left' 
-  | 'top-center' 
-  | 'top-right' 
-  | 'bottom-left' 
-  | 'bottom-center' 
+
+export type ToastPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-center'
   | 'bottom-right';
 
-export type ColorScheme = 
+export type ColorScheme =
   | 'green'      // 默认绿色
+  | 'blue'       // 蓝色 #2563EB
   | 'sky-blue'   // 天蓝色 #9fc2e2
   | 'purple'     // 紫色
   | 'orange'     // 橙色
@@ -19,6 +21,7 @@ export type ColorScheme =
 
 export const COLOR_SCHEMES: { value: ColorScheme; label: string; color: string }[] = [
   { value: 'green', label: 'colorScheme.green', color: '#4ade80' },
+  { value: 'blue', label: 'colorScheme.blue', color: '#2563EB' },
   { value: 'sky-blue', label: 'colorScheme.skyBlue', color: '#9fc2e2' },
   { value: 'purple', label: 'colorScheme.purple', color: '#a78bfa' },
   { value: 'orange', label: 'colorScheme.orange', color: '#fb923c' },
